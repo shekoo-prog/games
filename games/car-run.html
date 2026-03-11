@@ -78,6 +78,19 @@
     #flash-overlay {
       position: fixed; inset: 0; background: white; opacity: 0; pointer-events: none; z-index: 45; transition: opacity 0.5s;
     }
+
+    @media (max-width: 480px) {
+      #back-btn { top:8px; right:8px; padding:6px 12px; font-size:0.8rem; }
+      #hud { gap:6px; font-size:0.8rem; top:10px; }
+      .hud-chip { padding:4px 8px; border-radius:10px; }
+      #nitro-bar-container { width:60px; height:8px; }
+      .ctrl-btn { width:58px; height:58px; font-size:1.6rem; }
+      #btn-up { width:52px; height:52px; font-size:1.3rem; }
+      #touch-controls { gap:10px; bottom:12px; }
+      #overlay h2 { font-size:1.8rem; }
+      #overlay p  { font-size:0.9rem; line-height:1.5; }
+      #overlay button { padding:10px 28px; font-size:1.1rem; }
+    }
   </style>
 </head>
 <body>

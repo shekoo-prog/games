@@ -67,6 +67,17 @@
       box-shadow: 0 8px 30px rgba(46, 204, 113, 0.4); transition: transform 0.2s;
     }
     #overlay button:hover { transform: scale(1.08); }
+
+    @media (max-width: 480px) {
+      #back-btn { top:8px; right:8px; padding:6px 12px; font-size:0.8rem; }
+      #hud { gap:6px; font-size:0.85rem; }
+      .hud-chip { padding:5px 10px; border-radius:10px; }
+      .ctrl-btn { width:56px; height:56px; font-size:1.7rem; }
+      #touch-controls { gap:12px; bottom:12px; }
+      #overlay h2 { font-size:2rem; }
+      #overlay p  { font-size:0.9rem; line-height:1.5; }
+      #overlay button { padding:10px 30px; font-size:1.1rem; }
+    }
   </style>
 </head>
 <body>

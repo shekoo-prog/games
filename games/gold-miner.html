@@ -66,6 +66,17 @@
       box-shadow: 0 8px 30px rgba(255, 165, 0, 0.4); transition: transform 0.2s;
     }
     #overlay button:hover { transform: scale(1.08); }
+
+    @media (max-width: 480px) {
+      #back-btn { top:8px; right:8px; padding:6px 12px; font-size:0.8rem; }
+      #hud { gap:6px; margin-bottom:6px; font-size:0.85rem; }
+      .chip { padding:4px 10px; border-radius:10px; }
+      #controls { margin-top:8px; gap:12px; }
+      .action-btn { padding:10px 24px; font-size:1.2rem; }
+      #overlay h2 { font-size:1.8rem; }
+      #overlay p  { font-size:0.95rem; line-height:1.6; }
+      #overlay button { padding:10px 30px; font-size:1.1rem; }
+    }
   </style>
 </head>
 <body>

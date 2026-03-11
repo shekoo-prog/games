@@ -156,25 +156,20 @@
     }
 
     @media (max-width: 768px) {
+      #touch-joystick, #touch-btn { display: flex; z-index: 40; }
+      #minimap { width: 90px; height: 90px; top: auto; bottom: 160px; left: 15px; }
+      #hud { top: 60px; font-size: 1.1rem; }
+    }
 
-      #touch-joystick,
-      #touch-btn {
-        display: flex;
-        z-index: 40;
-      }
-
-      #minimap {
-        width: 90px;
-        height: 90px;
-        top: auto;
-        bottom: 160px;
-        left: 15px;
-      }
-
-      #hud {
-        top: 60px;
-        font-size: 1.1rem;
-      }
+    @media (max-width: 480px) {
+      #back-btn { top:8px; right:8px; padding:6px 12px; font-size:0.8rem; }
+      #hud { top:50px; font-size:0.8rem; gap:5px; }
+      #overlay h2 { font-size:2rem; }
+      #overlay p  { font-size:0.9rem; line-height:1.5; }
+      #overlay button { padding:10px 28px; font-size:1.1rem; }
+      #touch-joystick { width:90px; height:90px; bottom:16px; left:10px; }
+      #stick { width:36px; height:36px; }
+      #touch-btn { width:58px; height:58px; bottom:30px; right:14px; font-size:1.6rem; }
     }
 
     #overlay {

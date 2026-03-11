@@ -61,6 +61,15 @@
       background-size: 1000px 100px; animation: waveAnim 10s linear infinite; pointer-events: none; z-index: 10;
     }
     @keyframes waveAnim { from { background-position: 0 0; } to { background-position: 1000px 0; } }
+
+    @media (max-width: 480px) {
+      #back-btn { top:8px; right:8px; padding:6px 12px; font-size:0.8rem; }
+      #hud { gap:6px; margin-bottom:6px; font-size:0.85rem; }
+      .chip { padding:4px 10px; border-radius:10px; }
+      #overlay h2 { font-size:1.8rem; }
+      #overlay p  { font-size:0.9rem; line-height:1.5; }
+      #overlay button { padding:10px 30px; font-size:1.1rem; }
+    }
   </style>
 </head>
 <body>

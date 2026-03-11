@@ -69,6 +69,17 @@
     }
     #overlay button:hover { transform: scale(1.08); }
 
+    @media (max-width: 480px) {
+      #back-btn { top:8px; right:8px; padding:6px 12px; font-size:0.8rem; }
+      #hud { gap:6px; margin-bottom:6px; font-size:0.85rem; }
+      .chip { padding:4px 10px; border-radius:10px; }
+      #controls { gap:14px; margin-top:8px; }
+      .ctrl { width:64px; height:64px; font-size:1.8rem; }
+      #overlay h2 { font-size:1.8rem; }
+      #overlay p  { font-size:0.9rem; line-height:1.5; }
+      #overlay button { padding:10px 30px; font-size:1.1rem; }
+    }
+
     @keyframes spinIcon {
       from { transform: rotate(0deg) scale(1); }
       50%  { transform: rotate(180deg) scale(1.2); }

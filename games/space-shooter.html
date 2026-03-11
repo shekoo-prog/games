@@ -65,6 +65,16 @@
     }
     #overlay button:hover { transform: scale(1.08); box-shadow: 0 12px 40px rgba(77,150,255,0.7); }
     #lives-hearts { font-size: 1.4rem; letter-spacing: 6px; }
+
+    @media (max-width: 480px) {
+      #back-btn { top:8px; right:8px; padding:6px 12px; font-size:0.8rem; }
+      #hud { gap:10px; margin-bottom:6px; font-size:0.9rem; }
+      #hud span { padding:4px 12px; }
+      #lives-hearts { font-size:1rem; letter-spacing:2px; }
+      #overlay h2 { font-size:1.8rem; }
+      #overlay p  { font-size:0.9rem; line-height:1.5; }
+      #overlay button { padding:10px 30px; font-size:1.1rem; }
+    }
   </style>
 </head>
 <body>
