@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⛏️ صائد الذهب - عالم الألعاب</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Fredoka One', cursive; background: #2f211b; 
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; overflow: hidden; user-select: none; }
+    
+    #back-btn {
+      position: fixed; top: 18px; right: 18px;
+      background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.3);
+      color: #fff; padding: 10px 22px; border-radius: 50px; font-size: 1rem;
+      cursor: pointer; z-index: 100; backdrop-filter: blur(8px);
+      text-decoration: none; transition: background 0.2s;
+    }
+    #back-btn:hover { background: rgba(255,255,255,0.22); }
+
+    #hud {
+      display: flex; gap: 14px; margin-bottom: 10px; z-index: 5;
+      font-size: 1.2rem; color: #fff; flex-wrap: wrap; justify-content: center;
+    }
+    .chip {
+      background: rgba(0,0,0,0.5); border: 1px solid rgba(255,165,0,0.4);
+      border-radius: 14px; padding: 6px 16px; backdrop-filter: blur(6px);
+    }
+    .chip span { color: #ffd93d; }
+
+    canvas {
+      border: 3px solid #6b432a;
+      border-radius: 16px;
+      background: linear-gradient(to bottom, #74513d, #3c2415);
+      box-shadow: 0 0 60px rgba(107, 67, 42, 0.4);
+      display: block;
+      cursor: crosshair;
+    }
+
+    #controls {
+      margin-top: 14px;
+      display: flex; gap: 20px;
+    }
+    .action-btn {
+      background: linear-gradient(135deg, #ffd93d, #ff9f43);
+      color: #2f211b; border: none; padding: 12px 40px; font-size: 1.6rem;
+      border-radius: 50px; cursor: pointer; font-family: 'Fredoka One', cursive;
+      box-shadow: 0 6px 20px rgba(255, 165, 0, 0.4); 
+      transition: transform 0.1s; -webkit-tap-highlight-color: transparent;
+    }
+    .action-btn:active { transform: scale(0.95); }
+
+    #overlay {
+      position: fixed; inset: 0; background: rgba(20, 10, 5, 0.95);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 50; gap: 16px; backdrop-filter: blur(8px);
+    }
+    #overlay h2 { font-size: 3rem; color: #ffd93d; }
+    #overlay p { font-size: 1.2rem; color: rgba(255,255,255,0.85); text-align: center; line-height: 1.8; }
+    #overlay button {
+      background: linear-gradient(135deg, #ffd93d, #ff9f43);
+      color: #2f211b; border: none; padding: 15px 50px; font-size: 1.5rem;
+      border-radius: 50px; cursor: pointer; font-family: 'Fredoka One', cursive;
+      box-shadow: 0 8px 30px rgba(255, 165, 0, 0.4); transition: transform 0.2s;
+    }
+    #overlay button:hover { transform: scale(1.08); }
+  </style>
+</head>
+<body>
+  <a href="../index.html" id="back-btn">🏠 الرئيسية</a>
+
+  <div id="hud">
+    <div class="chip">🏅 مستوى: <span id="level-el">1</span></div>
+    <div class="chip">🎯 هدف: <span id="target-el">150</span></div>
+    <div class="chip">🏆 نقاط: <span id="score">0</span></div>
+    <div class="chip">⏱️ وقت: <span id="timeLeft">60</span></div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <div id="controls">
+    <button class="action-btn" id="drop-btn">👇 انزل الخطاف!</button>
+  </div>
+
+  <div id="overlay">
+    <div style="font-size:5rem">⛏️</div>
+    <h2>صائد الذهب!</h2>
+    <p>
+      اضغط <strong>"انزل الخطاف"</strong> أو في الشاشة<br>
+      🪙 اجمع الذهب قبل انتهاء الوقت لتصل للهدف<br>
+      🪨 قلل من سحب الصخور لأنها تضيع الوقت!
+    </p>
+    <button id="start-btn">ابدأ الحفر! ⛏️</button>
+  </div>
+
+<script>
+// ── أصوات ──
+function snd(f) { try { const a=new Audio('../sounds/'+f); a.preload='auto'; return a; } catch(e){ return {play:()=>{},currentTime:0}; } }
+const SFX = {
+  start:   snd('mixkit-medieval-show-fanfare-announcement-226.wav'),
+  drop:    snd('mixkit-retro-video-game-bubble-laser-277.wav'),
+  collect: snd('mixkit-video-game-treasure-2066.wav'),
+  rock:    snd('mixkit-negative-guitar-tone-2324.wav'),
+  over:    snd('mixkit-long-game-over-notification-276.wav')
+};
+function play(s){ try{ s.currentTime=0; s.play().catch(()=>{}); }catch(e){} }
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width = Math.min(window.innerWidth - 30, 680);
+const H = canvas.height = Math.min(window.innerHeight - 200, 500);
+
+let running = false, animId;
+let score = 0, time = 60, timerInt;
+let level = 1, targetScore = 150;
+let items = [];
+let floatTexts = [];
+
+const TARGETS = [0, 150, 420, 750, 1150, 1600, 2150, 2800, 3500, 4300];
+
+// ── حالة الخطاف ──
+// swing: يتأرجح, drop: نازل, reel: يسحب لفوق
+let hook = { state: 'swing', angle: 0, length: 15, dir: 1, grabbedItem: null, speedMultiplier: 1 };
+
+function initLevel() {
+  time = 60;
+  items = []; floatTexts = [];
+  targetScore = TARGETS[level] || (TARGETS[TARGETS.length-1] + (level - TARGETS.length + 1) * 1000);
+  
+  document.getElementById('score').textContent = score;
+  document.getElementById('timeLeft').textContent = time;
+  document.getElementById('level-el').textContent = level;
+  document.getElementById('target-el').textContent = targetScore;
+  
+  hook = { state: 'swing', angle: 0, length: 30, dir: 1, grabbedItem: null, speedMultiplier: 1 };
+  
+  // توليد الموارد (كلما زاد المستوى زادت الصخور)
+  for (let i = 0; i < 11; i++) spawnItem('🪙'); // ذهب عادي
+  for (let i = 0; i < 4 + Math.floor(level/2); i++) spawnItem('💎'); // ماس
+  for (let i = 0; i < 5 + level * 2; i++) spawnItem('🪨'); // الصخور تكثر مع المستويات
+  for (let i = 0; i < 4; i++) spawnItem('💰'); // أكياس مفاجآت
+}
+
+function spawnItem(type) {
+  let size, pts, weight;
+  switch (type) {
+    case '💎': size = 30; pts = 50; weight = 1.6; break;   // سريع جدا
+    case '🪙': 
+      const b = Math.random() > 0.6;
+      size = b ? 50 : 35; pts = b ? 40 : 20; weight = b ? 0.7 : 1.0; break;
+    case '💰': size = 45; pts = 30; weight = 1.0; break;
+    case '🪨': 
+      const br = Math.random() > 0.5;
+      size = br ? 60 : 45; pts = br ? 5 : 2; weight = br ? 0.3 : 0.4; break; // ثقيل جدا
+  }
+  
+  // نعطيه موقع عشوائي بالأسفل ولا يتداخل بشدة مع المركز بأعلى
+  let x, y;
+  do {
+    x = 40 + Math.random() * (W - 80);
+    y = 120 + Math.random() * (H - 160);
+  } while (Math.abs(x - W/2) < 50 && y < 200);
+
+  items.push({ type, x, y, size, pts, weight });
+}
+
+function dropHook() {
+  if (hook.state === 'swing') {
+    hook.state = 'drop';
+    play(SFX.drop);
+  }
+}
+
+// التحكم
+document.getElementById('drop-btn').addEventListener('click', dropHook);
+canvas.addEventListener('mousedown', dropHook);
+canvas.addEventListener('touchstart', (e) => { if(e.cancelable) e.preventDefault(); dropHook(); }, { passive: false });
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'ArrowDown') { e.preventDefault(); dropHook(); }
+});
+
+function addFloatText(x, y, text, col = '#ffd93d') {
+  floatTexts.push({ x, y, text, life: 60, col });
+}
+
+function update() {
+  if (!running) return;
+
+  // 1. Swing
+  if (hook.state === 'swing') {
+    hook.angle += 0.03 * hook.dir;
+    if (hook.angle > 1.2) hook.dir = -1;
+    if (hook.angle < -1.2) hook.dir = 1;
+  }
+  
+  // 2. Drop
+  if (hook.state === 'drop') {
+    hook.length += 6; // سرعة النزول
+    const hx = W/2 + Math.sin(hook.angle) * hook.length;
+    const hy = 20 + Math.cos(hook.angle) * hook.length;
+
+    // خبط في الجدران؟
+    if (hx < 0 || hx > W || hy > H) {
+      hook.state = 'reel';
+      hook.speedMultiplier = 1;
+    }
+
+    // خبط في صخرة/ذهب؟
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const dx = hx - it.x;
+      const dy = hy - it.y;
+      if (Math.hypot(dx, dy) < it.size/2 + 8) {
+        hook.state = 'reel';
+        hook.grabbedItem = it;
+        hook.speedMultiplier = it.weight;
+        items.splice(i, 1);
+        if(it.type === '🪨') play(SFX.rock);
+        break;
+      }
+    }
+  }
+
+  // 3. Reel (السحب)
+  if (hook.state === 'reel') {
+    hook.length -= 4 * hook.speedMultiplier; // سرعة السحب حسب الوزن
+    if (hook.length <= 30) {
+      // وصل للباص
+      if (hook.grabbedItem) {
+        let pts = hook.grabbedItem.pts;
+        score += pts;
+        document.getElementById('score').textContent = score;
+        addFloatText(W/2, 50, '+' + pts);
+        play(SFX.collect);
+        hook.grabbedItem = null;
+      }
+      hook.state = 'swing';
+    }
+  }
+
+  // Float text
+  floatTexts.forEach(f => f.life--);
+  floatTexts = floatTexts.filter(f => f.life > 0);
+  
+  // الفوز إذا خلصت الجوائز؟
+  if (items.length === 0 && hook.state === 'swing') {
+    if (score >= targetScore) {
+      showLevelUp();
+    } else {
+      addFloatText(W/2, H/2, 'الموارد نفدت، ولم تصل للهدف!', '#ff6b6b');
+      running = false;
+      setTimeout(endGame, 1500);
+    }
+  }
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  
+  // الخشبة العلوية للونش
+  ctx.fillStyle = '#4a2f1d';
+  ctx.fillRect(W/2 - 40, 0, 80, 20);
+
+  // العناصر المتبقية
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  items.forEach(it => {
+    ctx.save();
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.font = it.size + 'px serif';
+    ctx.fillText(it.type, it.x, it.y);
+    ctx.restore();
+  });
+
+  // الحبل
+  const hx = W/2 + Math.sin(hook.angle) * hook.length;
+  const hy = 20 + Math.cos(hook.angle) * hook.length;
+  
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(W/2, 20);
+  ctx.lineTo(hx, hy);
+  ctx.stroke();
+
+  // الخطاف
+  ctx.save();
+  ctx.translate(hx, hy);
+  ctx.rotate(-hook.angle); 
+  ctx.strokeStyle = '#999'; ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(0, 10, 12, Math.PI, 0, true);
+  ctx.stroke();
+  ctx.restore();
+
+  // لو ماسك حاجة
+  if (hook.grabbedItem) {
+    ctx.save();
+    ctx.font = hook.grabbedItem.size + 'px serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(hook.grabbedItem.type, hx, hy + 20);
+    ctx.restore();
+  }
+
+  // نصوص طائرة
+  floatTexts.forEach(f => {
+    ctx.save();
+    ctx.globalAlpha = f.life / 60;
+    ctx.font = 'bold 26px Fredoka One, cursive';
+    ctx.fillStyle = f.col;
+    ctx.textAlign = 'center';
+    ctx.shadowBlur = 8; ctx.shadowColor = '#000';
+    ctx.fillText(f.text, f.x, f.y - (60 - f.life));
+    ctx.restore();
+  });
+}
+
+function gameLoop() {
+  update(); draw();
+  if (running) { animId = requestAnimationFrame(gameLoop); }
+}
+
+function showLevelUp() {
+  running = false;
+  clearInterval(timerInt);
+  cancelAnimationFrame(animId);
+  play(SFX.start); // Using same success sound
+  const nextTarget = TARGETS[level+1] || targetScore + 1000;
+  const ov = document.getElementById('overlay');
+  ov.innerHTML = `
+    <div style="font-size:5rem">🎉</div>
+    <h2 style="color:#ffd93d">أتممت المستوى ${level}!</h2>
+    <p>رائع! جمعت حتى الآن:<br><strong style="color:#ffd93d;font-size:2.8rem">${score}$</strong><br>
+       الهدف للمستوى القادم هو: <strong>${nextTarget}$</strong></p>
+    <button id="next-btn">المستوى التالي 🚀</button>
+  `;
+  ov.style.display = 'flex';
+  document.getElementById('next-btn').addEventListener('click', () => {
+    level++;
+    startLevel();
+  });
+}
+
+function startLevel() {
+  document.getElementById('overlay').style.display = 'none';
+  play(SFX.start);
+  initLevel();
+  running = true;
+  clearInterval(timerInt);
+  timerInt = setInterval(() => {
+    if (!running) return;
+    time--;
+    document.getElementById('timeLeft').textContent = time;
+    if (time <= 0) {
+      if (score >= targetScore) showLevelUp();
+      else endGame();
+    }
+  }, 1000);
+  gameLoop();
+}
+
+function startGame() {
+  score = 0; level = 1; targetScore = TARGETS[1];
+  startLevel();
+}
+
+function endGame() {
+  running = false;
+  clearInterval(timerInt);
+  cancelAnimationFrame(animId);
+  play(SFX.over);
+  const ov = document.getElementById('overlay');
+  ov.innerHTML = `
+    <div style="font-size:5rem">⛏️</div>
+    <h2 style="color:#ff6b6b">لقد خسرت!</h2>
+    <p>جمعت <strong style="color:#ffd93d">${score}$</strong><br>
+       وكان الهدف <strong style="color:#ff6b6b">${targetScore}$</strong> في المستوى ${level}</p>
+    <button id="start-btn">العب مجدداً! ⛏️</button>
+  `;
+  ov.style.display = 'flex';
+  document.getElementById('start-btn').addEventListener('click', startGame);
+}
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+</script>
+</body>
+</html>

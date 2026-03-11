@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌟 Star Catcher - عالم الألعاب</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Fredoka One', cursive;
+      background: #050520;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 100vh; overflow: hidden; user-select: none;
+    }
+    #back-btn {
+      position: fixed; top: 18px; right: 18px;
+      background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.3);
+      color: #fff; padding: 10px 22px; border-radius: 50px; font-size: 1rem;
+      cursor: pointer; z-index: 100; backdrop-filter: blur(8px);
+      text-decoration: none; transition: background 0.2s;
+    }
+    #back-btn:hover { background: rgba(255,255,255,0.22); }
+
+    #hud {
+      display: flex; gap: 14px; margin-bottom: 10px;
+      font-size: 1.2rem; color: #fff; flex-wrap: wrap; justify-content: center;
+      position: relative; z-index: 5;
+    }
+    .chip {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 14px; padding: 7px 18px; backdrop-filter: blur(6px);
+    }
+    .chip span { color: #ffd93d; }
+
+    canvas {
+      display: block; border-radius: 20px;
+      border: 2px solid rgba(255,215,0,0.4);
+      box-shadow: 0 0 60px rgba(255,215,0,0.2);
+    }
+
+    #controls {
+      display: flex; gap: 24px; margin-top: 14px;
+      position: relative; z-index: 5;
+    }
+    .ctrl {
+      width: 84px; height: 84px; border-radius: 50%;
+      background: rgba(255,215,0,0.15); border: 2px solid rgba(255,215,0,0.45);
+      color: #ffd93d; font-size: 2.4rem; display: flex;
+      align-items: center; justify-content: center;
+      cursor: pointer; backdrop-filter: blur(6px);
+      transition: background 0.1s; -webkit-tap-highlight-color: transparent;
+    }
+    .ctrl:active { background: rgba(255,215,0,0.45); }
+
+    #overlay {
+      position: fixed; inset: 0; background: rgba(5,5,32,0.93);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; z-index: 50; gap: 18px; backdrop-filter: blur(10px);
+    }
+    #overlay h2 { font-size: 3rem; }
+    #overlay p  { font-size: 1.15rem; color: rgba(255,255,255,.88); text-align: center; line-height: 2.2; }
+    #overlay button {
+      background: linear-gradient(135deg, #ffd93d, #ff9f43);
+      color: #1a1a2e; border: none; padding: 15px 50px; font-size: 1.5rem;
+      border-radius: 50px; cursor: pointer; font-family: 'Fredoka One', cursive;
+      box-shadow: 0 8px 30px rgba(255,217,61,0.5); transition: transform 0.2s;
+    }
+    #overlay button:hover { transform: scale(1.08); }
+
+    @keyframes spinIcon {
+      from { transform: rotate(0deg) scale(1); }
+      50%  { transform: rotate(180deg) scale(1.2); }
+      to   { transform: rotate(360deg) scale(1); }
+    }
+
+    /* مستوى جديد */
+    #level-up-banner {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      font-family: 'Fredoka One', cursive;
+      font-size: 3rem; color: #ffd93d;
+      text-shadow: 0 0 30px #ffd93d, 0 0 60px #ff9f43;
+      z-index: 200; pointer-events: none;
+      animation: levelUpAnim 1.2s ease forwards;
+      display: none;
+    }
+    @keyframes levelUpAnim {
+      0%   { opacity:0; transform:translate(-50%,-50%) scale(0.4); }
+      30%  { opacity:1; transform:translate(-50%,-50%) scale(1.2); }
+      70%  { opacity:1; transform:translate(-50%,-70%) scale(1);   }
+      100% { opacity:0; transform:translate(-50%,-90%) scale(0.9); display:none; }
+    }
+  </style>
+</head>
+<body>
+  <a href="../index.html" id="back-btn">🏠 الرئيسية</a>
+
+  <div id="hud">
+    <div class="chip">🏆 نقاط: <span id="score">0</span></div>
+    <div class="chip">❤️ أرواح: <span id="lives-el">❤️❤️❤️</span></div>
+    <div class="chip">⭐ أفضل: <span id="best">0</span></div>
+    <div class="chip">🏅 مستوى: <span id="level">1</span></div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <div id="controls">
+    <div class="ctrl" id="btn-left">◀</div>
+    <div class="ctrl" id="btn-right">▶</div>
+  </div>
+
+  <div id="level-up-banner">🎉 مستوى جديد!</div>
+
+  <div id="overlay">
+    <div style="font-size:5rem; animation:spinIcon 3s linear infinite">🌟</div>
+    <h2 style="color:#ffd93d">Star Catcher!</h2>
+    <p>
+      ◀ ▶ حرّك السلة يميناً ويساراً<br>
+      ⌨️ أو استخدم أسهم لوحة المفاتيح<br>
+      🌟 التقط النجوم والجوائز<br>
+      💣 تجنب القنابل الحمراء!
+    </p>
+    <button id="start-btn">ابدأ اللعبة! 🌟</button>
+  </div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  إعداد
+// ══════════════════════════════════════════════════
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+const W = canvas.width  = Math.min(window.innerWidth - 40, 580);
+const H = canvas.height = Math.min(window.innerHeight - 220, 460);
+
+// ══════════════════════════════════════════════════
+//  أصوات — تعريف مسبق (لا تتوقف إذا فشل التحميل)
+// ══════════════════════════════════════════════════
+function makeSound(path) {
+  try {
+    const a = new Audio('../sounds/' + path);
+    a.preload = 'auto';
+    return a;
+  } catch(e) { return { play: () => {}, currentTime: 0 }; }
+}
+const SFX = {
+  catch:   makeSound('action.mp3'),    // التقاط جائزة
+  bomb:    makeSound('notify.mp3'),    // اصطدام بقنبلة
+  level:   makeSound('clear.mp3'),     // مستوى جديد
+  start:   makeSound('join.mp3'),      // بداية اللعبة
+  over:    makeSound('whistle.mp3'),   // نهاية اللعبة
+};
+function playSound(sfx) {
+  try { sfx.currentTime = 0; sfx.play().catch(() => {}); }
+  catch(e) {}
+}
+
+// ══════════════════════════════════════════════════
+//  حالة اللعبة
+// ══════════════════════════════════════════════════
+let score=0, best=0, lives=3, level=1;
+let running=false, animId;
+let bgStars=[], items=[], particles=[], floatTexts=[];
+let spawnTimer=0;
+
+// ── السلة (أكبر) ──
+const BASKET_W = 130;   // كانت 90
+const BASKET_H =  36;   // كانت 30
+let basketX = W / 2;
+
+// ── أنواع العناصر الساقطة ──
+// size أكبر + لا نعتمد على globalAlpha لإخفائها
+const ITEM_TYPES = [
+  { emoji:'⭐', pts: 10, bad:false, size:54 },
+  { emoji:'🌟', pts: 20, bad:false, size:58 },
+  { emoji:'💎', pts: 40, bad:false, size:50 },
+  { emoji:'🍭', pts: 15, bad:false, size:52 },
+  { emoji:'🎁', pts: 50, bad:false, size:54 },
+  { emoji:'👑', pts: 30, bad:false, size:56 },
+  { emoji:'🍬', pts: 10, bad:false, size:50 },
+  { emoji:'💣', pts: -1, bad:true,  size:52 },
+];
+
+// ══════════════════════════════════════════════════
+//  مدخلات
+// ══════════════════════════════════════════════════
+const keys = {};
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (['ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+const btnL = document.getElementById('btn-left');
+const btnR = document.getElementById('btn-right');
+['touchstart','mousedown'].forEach(ev => {
+  btnL.addEventListener(ev, e => { if(e.cancelable) e.preventDefault(); keys['ArrowLeft']  = true;  }, { passive:false });
+  btnR.addEventListener(ev, e => { if(e.cancelable) e.preventDefault(); keys['ArrowRight'] = true;  }, { passive:false });
+});
+['touchend','mouseup'].forEach(ev => {
+  btnL.addEventListener(ev, e => { if(e.cancelable) e.preventDefault(); keys['ArrowLeft']  = false; }, { passive:false });
+  btnR.addEventListener(ev, e => { if(e.cancelable) e.preventDefault(); keys['ArrowRight'] = false; }, { passive:false });
+});
+
+// سحب إصبع على الـ Canvas
+let touchSX = 0;
+canvas.addEventListener('touchstart', e => { 
+  touchSX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : (e.changedTouches ? e.changedTouches[0].clientX : 0); 
+}, { passive:true });
+canvas.addEventListener('touchmove', e => {
+  if(e.cancelable) e.preventDefault();
+  const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : (e.changedTouches ? e.changedTouches[0].clientX : 0);
+  const dx = clientX - touchSX;
+  basketX = Math.max(BASKET_W/2, Math.min(W - BASKET_W/2, basketX + dx * 0.7));
+  touchSX = clientX;
+}, { passive:false });
+
+// ══════════════════════════════════════════════════
+//  تهيئة
+// ══════════════════════════════════════════════════
+function init() {
+  score=0; lives=3; level=1; basketX=W/2;
+  items=[]; particles=[]; floatTexts=[]; spawnTimer=0;
+  document.getElementById('score').textContent = 0;
+  document.getElementById('level').textContent = 1;
+  updateLives();
+
+  // نجوم الخلفية (مرة واحدة)
+  if (bgStars.length === 0) {
+    for (let i=0; i<90; i++) {
+      bgStars.push({
+        x:  Math.random()*W, y: Math.random()*H,
+        r:  0.5 + Math.random()*2.5,
+        op: 0.3 + Math.random()*0.7,
+        tw: 1.5 + Math.random()*3,
+        t:  Math.random()*Math.PI*2,
+      });
+    }
+  }
+}
+
+function updateLives() {
+  document.getElementById('lives-el').textContent = '❤️'.repeat(Math.max(0, lives));
+}
+
+// ══════════════════════════════════════════════════
+//  توليد عنصر
+// ══════════════════════════════════════════════════
+function spawnItem() {
+  // اختيار النوع
+  const pool = [];
+  for (const t of ITEM_TYPES) {
+    if (t.bad) {
+      if (level >= 2) { pool.push(t, t); }      // قنبلة من المستوى 2 فقط
+    } else {
+      pool.push(t, t, t);                        // جوائز أكثر دائماً
+    }
+  }
+  const type  = pool[Math.floor(Math.random() * pool.length)];
+  const x     = type.size/2 + 14 + Math.random() * (W - type.size - 28);
+  const speed = 1.8 + level * 0.45 + Math.random() * 1.0;
+
+  // نجمة بيضاء تظهر قبل العنصر (trail)
+  items.push({ ...type, x, y: -type.size, speed });
+}
+
+// ══════════════════════════════════════════════════
+//  جسيمات + نصوص طائرة
+// ══════════════════════════════════════════════════
+function spawnParticles(x, y, color, n) {
+  for (let i=0; i<n; i++) {
+    const a = Math.random()*Math.PI*2, s = 2 + Math.random()*5;
+    particles.push({ x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s - 1,
+      life:35 + Math.random()*20, maxLife:55, color, r:4+Math.random()*5 });
+  }
+}
+function addFloatText(x, y, text) {
+  floatTexts.push({ x, y, text, life:45, maxLife:45 });
+}
+
+// ══════════════════════════════════════════════════
+//  مستوى جديد
+// ══════════════════════════════════════════════════
+function showLevelUp() {
+  const banner = document.getElementById('level-up-banner');
+  banner.style.display = 'block';
+  setTimeout(() => { banner.style.display = 'none'; }, 1200);
+  playSound(SFX.level);
+}
+
+// ══════════════════════════════════════════════════
+//  Update
+// ══════════════════════════════════════════════════
+function update(dt) {
+  // حركة السلة
+  const SPEED = 8 + level * 0.4;
+  if (keys['ArrowLeft']  || keys['a']) basketX -= SPEED;
+  if (keys['ArrowRight'] || keys['d']) basketX += SPEED;
+  basketX = Math.max(BASKET_W/2, Math.min(W - BASKET_W/2, basketX));
+
+  // توليد عناصر
+  const interval = Math.max(0.45, 1.5 - level * 0.1);
+  spawnTimer += dt;
+  if (spawnTimer >= interval) { spawnTimer = 0; spawnItem(); }
+
+  // تحريك العناصر
+  const by = H - BASKET_H - 14;
+  items.forEach(it => { it.y += it.speed; });
+
+  items = items.filter(it => {
+    // ── اصطدام بالسلة ──
+    if (it.y + it.size/2 >= by &&
+        it.y - it.size/2 <= by + BASKET_H &&
+        it.x + it.size/2 >= basketX - BASKET_W/2 &&
+        it.x - it.size/2 <= basketX + BASKET_W/2) {
+
+      if (it.bad) {
+        lives--;
+        updateLives();
+        spawnParticles(it.x, it.y, '#ff4444', 14);
+        addFloatText(it.x, it.y, '💥 آوتش!');
+        playSound(SFX.bomb);
+        if (lives <= 0) endGame();
+      } else {
+        score += it.pts;
+        best = Math.max(best, score);
+        document.getElementById('score').textContent = score;
+        document.getElementById('best').textContent  = best;
+        spawnParticles(it.x, it.y, '#ffd93d', 16);
+        addFloatText(it.x, it.y, '+' + it.pts);
+        playSound(SFX.catch);
+        // مستوى جديد؟
+        const nl = Math.floor(score / 200) + 1;
+        if (nl !== level) {
+          level = nl;
+          document.getElementById('level').textContent = level;
+          showLevelUp();
+        }
+      }
+      return false;
+    }
+    // خرج من الشاشة من الأسفل
+    if (it.y > H + 30) return false;
+    return true;
+  });
+
+  // جسيمات
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= 0.90; p.vy *= 0.90;
+    p.life--;
+  });
+  particles = particles.filter(p => p.life > 0);
+
+  // نصوص طائرة
+  floatTexts.forEach(f => f.life--);
+  floatTexts = floatTexts.filter(f => f.life > 0);
+}
+
+// ══════════════════════════════════════════════════
+//  Draw
+// ══════════════════════════════════════════════════
+function draw() {
+  // ── خلفية ──
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#050520'); bg.addColorStop(1,'#08083a');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+
+  // ── نجوم الخلفية ──
+  bgStars.forEach(s => {
+    s.t += 0.02;
+    const op = s.op * (0.4 + 0.6 * Math.abs(Math.sin(s.t / s.tw)));
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,255,255,${op.toFixed(2)})`; ctx.fill();
+  });
+
+  // ── خط الأرض ──
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,215,0,0.18)'; ctx.lineWidth=2;
+  ctx.setLineDash([12,8]);
+  ctx.beginPath(); ctx.moveTo(0, H-BASKET_H-14); ctx.lineTo(W, H-BASKET_H-14);
+  ctx.stroke(); ctx.restore();
+
+  // ── العناصر الساقطة ──
+  // نرسمها بـ globalAlpha = 1 دائماً (بدون أى شفافية)
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  items.forEach(it => {
+    const halfSize = it.size / 2 + 6;
+
+    // هالة ملونة خلف العنصر لزيادة الوضوح
+    const haloColor = it.bad ? 'rgba(255,50,50,0.25)' : 'rgba(255,220,60,0.20)';
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(it.x, it.y, halfSize, 0, Math.PI*2);
+    ctx.fillStyle = haloColor;
+    ctx.fill();
+    ctx.restore();
+
+    // ظل واضح
+    ctx.save();
+    ctx.shadowBlur  = it.bad ? 22 : 20;
+    ctx.shadowColor = it.bad ? '#ff3333' : '#ffd93d';
+    ctx.globalAlpha = 1.0;           // ← opacity كاملة دائماً
+    ctx.font = it.size + 'px serif';
+    ctx.fillText(it.emoji, it.x, it.y);
+    ctx.restore();
+  });
+  ctx.restore();
+
+  // ── السلة ──
+  const bx = basketX, by = H - BASKET_H - 14;
+  const bw = BASKET_W, bh = BASKET_H;
+
+  ctx.save();
+  ctx.shadowBlur = 25; ctx.shadowColor = 'rgba(255,217,61,0.7)';
+  // جسم السلة (شكل شبه منحرف)
+  const grad = ctx.createLinearGradient(bx - bw/2, by, bx + bw/2, by + bh);
+  grad.addColorStop(0,'#ffe033'); grad.addColorStop(1,'#ff9f43');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(bx - bw/2,     by);
+  ctx.lineTo(bx - bw/2 + 14, by + bh);
+  ctx.lineTo(bx + bw/2 - 14, by + bh);
+  ctx.lineTo(bx + bw/2,     by);
+  ctx.closePath();
+  ctx.fill();
+
+  // خطوط ديكور
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.8;
+  for (let i=1; i<=3; i++) {
+    const tx = bw / 4;
+    ctx.beginPath();
+    ctx.moveTo(bx - bw/2 + i*tx,      by);
+    ctx.lineTo(bx - bw/2 + 14 + i*(bw-28)/4, by + bh);
+    ctx.stroke();
+  }
+
+  // إيموجي 🧺 فوق السلة (كبير وواضح)
+  ctx.shadowBlur = 0;
+  ctx.font = '28px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('🧺', bx, by - 22);
+  ctx.restore();
+
+  // ── جسيمات ──
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life / p.maxLife;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle = p.color; ctx.fill();
+    ctx.restore();
+  });
+
+  // ── نصوص طائرة ──
+  floatTexts.forEach(f => {
+    const rise = (f.maxLife - f.life) * 1.6;
+    ctx.save();
+    ctx.globalAlpha = f.life / f.maxLife;
+    ctx.font = 'bold 24px Fredoka One, cursive';
+    ctx.fillStyle = '#ffd93d';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowBlur = 10; ctx.shadowColor = '#ffd93d';
+    ctx.fillText(f.text, f.x, f.y - rise);
+    ctx.restore();
+  });
+}
+
+// ══════════════════════════════════════════════════
+//  Game Loop
+// ══════════════════════════════════════════════════
+let lastTS = 0;
+function loop(ts) {
+  if (!running) return;
+  const dt = Math.min((ts - lastTS) / 1000, 0.05);
+  lastTS = ts;
+  update(dt);
+  draw();
+  animId = requestAnimationFrame(loop);
+}
+
+// ══════════════════════════════════════════════════
+//  نهاية اللعبة / بداية اللعبة
+// ══════════════════════════════════════════════════
+function endGame() {
+  running = false;
+  cancelAnimationFrame(animId);
+  playSound(SFX.over);
+  const ov = document.getElementById('overlay');
+  ov.innerHTML = `
+    <div style="font-size:4.5rem">💫</div>
+    <h2 style="color:#ffd93d">انتهت اللعبة!</h2>
+    <p>
+      نقاطك: <strong style="color:#ffd93d; font-size:2.4rem">${score}</strong><br>
+      وصلت للمستوى: <strong style="color:#ff9f43">${level}</strong> 🏅<br>
+      أعلى نقاط: <strong style="color:#4d96ff">${best}</strong>
+    </p>
+    <button id="start-btn">العب مجدداً! 🌟</button>
+  `;
+  ov.style.display = 'flex';
+  document.getElementById('start-btn').addEventListener('click', startGame);
+}
+
+function startGame() {
+  document.getElementById('overlay').style.display = 'none';
+  init();
+  running = true;
+  cancelAnimationFrame(animId);
+  lastTS = performance.now();
+  playSound(SFX.start);
+  animId = requestAnimationFrame(loop);
+}
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+</script>
+</body>
+</html>

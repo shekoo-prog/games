@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🚀 حرب الدبابات الملونة 3D - عالم الألعاب</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Fredoka One', cursive;
+      background: #2c3e50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #back-btn {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1.5px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 50px;
+      font-size: 1rem;
+      cursor: pointer;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    #back-btn:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    #hud {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 14px;
+      z-index: 10;
+      font-size: 1.3rem;
+      color: #fff;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .hud-chip {
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 8px 16px;
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hud-chip span {
+      color: #f39c12;
+      font-weight: bold;
+    }
+
+    #health-bar {
+      width: 100px;
+      height: 12px;
+      background: rgba(231, 76, 60, 0.3);
+      border-radius: 10px;
+      display: inline-block;
+      overflow: hidden;
+    }
+
+    #health-fill {
+      width: 100%;
+      height: 100%;
+      background: #e74c3c;
+      transition: width 0.2s, background 0.2s;
+    }
+
+    .status-icon {
+      font-size: 1.5rem;
+      opacity: 0.2;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .status-icon.active {
+      opacity: 1;
+      transform: scale(1.2);
+      filter: drop-shadow(0 0 5px currentColor);
+    }
+
+    #renderer-wrap {
+      border-radius: 20px;
+      overflow: hidden;
+      border: 3px solid rgba(243, 156, 18, 0.5);
+      box-shadow: 0 0 60px rgba(243, 156, 18, 0.3);
+      position: relative;
+    }
+
+    #minimap {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      width: 130px;
+      height: 130px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(4px);
+      z-index: 15;
+    }
+
+    #touch-joystick {
+      position: absolute;
+      bottom: 30px;
+      left: 30px;
+      width: 120px;
+      height: 120px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      display: none;
+    }
+
+    #touch-btn {
+      position: absolute;
+      bottom: 30px;
+      right: 30px;
+      width: 90px;
+      height: 90px;
+      background: rgba(231, 76, 60, 0.2);
+      border-radius: 50%;
+      border: 2px solid rgba(231, 76, 60, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+
+    @media (max-width: 768px) {
+
+      #touch-joystick,
+      #touch-btn {
+        display: flex;
+        z-index: 40;
+      }
+
+      #minimap {
+        width: 90px;
+        height: 90px;
+        top: auto;
+        bottom: 160px;
+        left: 15px;
+      }
+
+      #hud {
+        top: 60px;
+        font-size: 1.1rem;
+      }
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(44, 62, 80, 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      gap: 16px;
+      backdrop-filter: blur(8px);
+    }
+
+    #overlay h2 {
+      font-size: 3.5rem;
+      color: #f39c12;
+      text-align: center;
+    }
+
+    #overlay p {
+      font-size: 1.25rem;
+      color: rgba(255, 255, 255, 0.85);
+      text-align: center;
+      line-height: 1.9;
+    }
+
+    #overlay button {
+      background: linear-gradient(135deg, #f39c12, #d35400);
+      color: #fff;
+      border: none;
+      padding: 15px 50px;
+      font-size: 1.6rem;
+      border-radius: 50px;
+      cursor: pointer;
+      font-family: 'Fredoka One', cursive;
+      box-shadow: 0 8px 30px rgba(243, 156, 18, 0.4);
+      transition: transform 0.2s;
+    }
+
+    #overlay button:hover {
+      transform: scale(1.08);
+    }
+
+    #wave-alert {
+      position: absolute;
+      top: 35%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 4.5rem;
+      color: #f39c12;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+      z-index: 30;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+  </style>
+</head>
+
+<body>
+  <a href="../index.html" id="back-btn">🏠 الرئيسية</a>
+
+  <div id="hud">
+    <div class="hud-chip">🌊 موجة: <span id="wave">1</span></div>
+    <div class="hud-chip">💣 دمار: <span id="score">0</span></div>
+    <div class="hud-chip">🛡️ صحة: <div id="health-bar">
+        <div id="health-fill"></div>
+      </div>
+    </div>
+    <div class="hud-chip">
+      <div class="status-icon" id="icon-shield" style="color:#3498db">🛡️</div>
+      <div class="status-icon" id="icon-multi" style="color:#e74c3c">🚀</div>
+    </div>
+  </div>
+
+  <div id="renderer-wrap">
+    <div id="three-container"></div>
+    <canvas id="minimap" width="150" height="150"></canvas>
+    <div id="wave-alert">الموجة 1</div>
+    <div id="touch-joystick">
+      <div id="stick"
+        style="width:50px;height:50px;background:rgba(255,255,255,0.4);border-radius:50%;margin:33px;transform:translate(0,0);">
+      </div>
+    </div>
+    <div id="touch-btn">🎯</div>
+  </div>
+
+  <div id="overlay">
+    <div style="font-size:5rem">🚀💥</div>
+    <h2>حرب الدبابات الملونة!</h2>
+    <p>
+      استخدم <strong>الأسهم / WASD</strong> + انقر للتصويب 🖱️<br>
+      احتمِ خلف <strong>الحواجز 🧱</strong> والتقط <strong>الجوائز 🎁</strong><br>
+      هل يمكنك النجاة من دبابات "الزعماء" في الموجات المتقدمة؟
+    </p>
+    <button id="start-btn">بدء المعركة 🔥</button>
+  </div>
+
+  <script>
+    // ── أصوات ──
+    function snd(f) { try { const a = new Audio('../sounds/' + f); a.preload = 'auto'; return a; } catch (e) { return { play: () => { }, currentTime: 0 }; } }
+    const SFX = {
+      shoot: snd('mixkit-retro-video-game-bubble-laser-277.wav'),
+      expPlayer: snd('mixkit-player-losing-or-failing-2042.wav'),
+      expEnemy: snd('mixkit-game-blood-pop-slide-2363.wav'),
+      start: snd('mixkit-arcade-rising-231.wav'),
+      powerup: snd('mixkit-video-game-treasure-2066.wav'),
+      hitWall: snd('mixkit-negative-guitar-tone-2324.wav') // صوت اصطدام الدرع/الحائط
+    };
+    function play(s) { try { s.currentTime = 0; s.play().catch(() => { }); } catch (e) { } }
+
+    const W = Math.min(window.innerWidth - 20, 1200);
+    const H = Math.min(window.innerHeight - 100, 800);
+    document.getElementById('renderer-wrap').style.width = W + 'px';
+    document.getElementById('renderer-wrap').style.height = H + 'px';
+
+    // ── توليد خامات ──
+    function createDirtTexture() {
+      const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#C2B280'; ctx.fillRect(0, 0, 512, 512); // لون رمال الصحراء
+      for (let i = 0; i < 6000; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? '#A89F68' : '#D1C594'; // تفاصيل رمل وحصى
+        ctx.fillRect(Math.random() * 512, Math.random() * 512, 2 + Math.random() * 3, 2 + Math.random() * 3);
+      }
+      const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(10, 10);
+      return tex;
+    }
+    function createCamoTexture() {
+      const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#556B2F'; ctx.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 40; i++) {
+        ctx.beginPath(); ctx.arc(Math.random() * 256, Math.random() * 256, 10 + Math.random() * 30, 0, Math.PI * 2);
+        ctx.fillStyle = Math.random() > 0.5 ? '#3b4d1b' : '#2b3315'; ctx.fill();
+        ctx.beginPath(); ctx.arc(Math.random() * 256, Math.random() * 256, 5 + Math.random() * 15, 0, Math.PI * 2);
+        ctx.fillStyle = '#4a3c31'; ctx.fill();
+      }
+      const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+    function createWallTexture() {
+      const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#7f8c8d'; ctx.fillRect(0, 0, 128, 128); // رمادي حجري
+      ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
+      // رسم طوب
+      for (let y = 0; y < 128; y += 16) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(128, y); ctx.stroke();
+        for (let x = (y % 32 === 0) ? 0 : -16; x < 128; x += 32) {
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 16); ctx.stroke();
+        }
+      }
+      const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    function createCrateTexture(emoji, bgColor) {
+      const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      // خلفية بلون الجائزة
+      ctx.fillStyle = bgColor; ctx.fillRect(0, 0, 128, 128);
+      // إطار الصندوق الخشبي وخطوطه
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 4;
+      ctx.strokeRect(2, 2, 124, 124);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(128,128); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(128,0); ctx.lineTo(0,128); ctx.stroke();
+      
+      // خلفية دائرية للإيموجي عشان يكون واضح
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.beginPath(); ctx.arc(64,64, 40, 0, Math.PI*2); ctx.fill();
+      
+      // الإيموجي أو الأيقونة
+      ctx.font = '50px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(emoji, 64, 68);
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    const groundTex = createDirtTexture();
+    const camoTex = createCamoTexture();
+    const wallTex = createWallTexture();
+    const texHealth = createCrateTexture('❤️', '#2ecc71');
+    const texMulti  = createCrateTexture('🚀', '#e74c3c');
+    const texShield = createCrateTexture('🛡️', '#3498db');
+
+    // ── الثري دي ──
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x34495e);
+    scene.fog = new THREE.Fog(0x34495e, 25, 75);
+
+    const camera = new THREE.PerspectiveCamera(50, W / H, 0.1, 150);
+    camera.position.set(0, 20, 16);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(W, H);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.getElementById('three-container').appendChild(renderer.domElement);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    dirLight.position.set(15, 30, 15);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.left = -40; dirLight.shadow.camera.right = 40;
+    dirLight.shadow.camera.top = 40; dirLight.shadow.camera.bottom = -40;
+    scene.add(dirLight);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+
+    const floorMat = new THREE.MeshStandardMaterial({ map: groundTex, color: 0xeeddcc, roughness: 1.0, metalness: 0.0 });
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // ── اللعبة: جدران وعدو ومستويات ──
+    let walls = [], enemies = [], bullets = [], particles = [], powerups = [];
+    let running = false, lastT = 0, animId;
+    let pHealth = 100, score = 0, wave = 1;
+    let enemiesToSpawn = 0, enemiesAlive = 0, waveTimer = 0;
+    let activeShield = 0, activeMulti = 0;
+    let keys = {};
+
+    function generateWalls() {
+      walls.forEach(w => scene.remove(w)); walls = [];
+      const geo = new THREE.BoxGeometry(4, 3, 4);
+      const mat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.9 });
+      for (let i = 0; i < 25; i++) {
+        const wx = (Math.random() - 0.5) * 70; const wz = (Math.random() - 0.5) * 70;
+        if (Math.hypot(wx, wz) < 15) continue; // تفريغ المنتصف للاعب
+        const w = new THREE.Mesh(geo, mat);
+        w.position.set(wx, 1.5, wz);
+        w.castShadow = true; w.receiveShadow = true;
+        scene.add(w); walls.push(w);
+      }
+    }
+
+    function checkWallCollision(x, z, r) {
+      for (let w of walls) {
+        if (Math.abs(w.position.x - x) < 2 + r && Math.abs(w.position.z - z) < 2 + r) return true;
+      }
+      return false;
+    }
+
+    // ── الدبابات ──
+    function createTank(color, scale = 1) {
+      const tGroup = new THREE.Group();
+      const camoMat = new THREE.MeshStandardMaterial({ map: camoTex, color: color, roughness: 0.8 });
+
+      const bodygeo = new THREE.BoxGeometry(2.2, 0.8, 3.2);
+      const mBody = new THREE.Mesh(bodygeo, camoMat);
+      mBody.position.y = 0.6; mBody.castShadow = mBody.receiveShadow = true;
+      tGroup.add(mBody);
+
+      const turretgeo = new THREE.CylinderGeometry(0.8, 0.9, 0.6, 16);
+      const mTurret = new THREE.Mesh(turretgeo, camoMat);
+      mTurret.position.y = 1.3; mTurret.castShadow = true;
+      tGroup.add(mTurret);
+
+      const barGeo = new THREE.CylinderGeometry(0.12, 0.15, 2.5, 12);
+      const barMat = new THREE.MeshStandardMaterial({ color: 0x222, metalness: 0.8 });
+      const mBar = new THREE.Mesh(barGeo, barMat);
+      mBar.position.y = 1.3; mBar.position.z = -1.25; mBar.rotation.x = Math.PI / 2; mBar.castShadow = true;
+      tGroup.add(mBar);
+
+      const tHGeo = new THREE.BoxGeometry(0.6, 0.9, 3.6);
+      const tHMat = new THREE.MeshStandardMaterial({ color: 0x111 });
+      const rt = new THREE.Mesh(tHGeo, tHMat); rt.position.set(1.4, 0.45, 0); rt.castShadow = true; tGroup.add(rt);
+      const lt = new THREE.Mesh(tHGeo, tHMat); lt.position.set(-1.4, 0.45, 0); lt.castShadow = true; tGroup.add(lt);
+
+      const wheels = [];
+      const wGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.65, 16); wGeo.rotateZ(Math.PI / 2);
+      const wMat = new THREE.MeshStandardMaterial({ color: 0x333, roughness: 0.5 });
+      [-1.3, -0.65, 0, 0.65, 1.3].forEach(z => {
+        const rw = new THREE.Mesh(wGeo, wMat); rw.position.set(1.4, 0.35, z); tGroup.add(rw); wheels.push(rw);
+        const lw = new THREE.Mesh(wGeo, wMat); lw.position.set(-1.4, 0.35, z); tGroup.add(lw); wheels.push(lw);
+      });
+
+      // درع شفاف (للاعب فقط يتم تفعيله)
+      const shieldGeo = new THREE.SphereGeometry(3, 16, 16);
+      const shieldMat = new THREE.MeshBasicMaterial({ color: 0x3498db, transparent: true, opacity: 0.3, wireframe: true });
+      const shield = new THREE.Mesh(shieldGeo, shieldMat);
+      shield.position.y = 1; shield.visible = false;
+      tGroup.add(shield);
+
+      tGroup.userData = { turret: mTurret, barrel: mBar, wheels: wheels, shield: shield, radius: 1.6 };
+      tGroup.scale.set(scale, scale, scale);
+      return tGroup;
+    }
+
+    const pTank = createTank(0x3498db); // Player
+    scene.add(pTank);
+
+    function spawnEnemy() {
+      const types = [
+        { type: 'fast', hp: 1, spd: 8, scale: 0.7, color: 0x1abc9c, cd: 2.0 },
+        { type: 'normal', hp: 2, spd: 5, scale: 1.0, color: 0xe74c3c, cd: 1.5 },
+        { type: 'boss', hp: 6, spd: 3, scale: 1.4, color: 0x2c3e50, cd: 1.0 }
+      ];
+
+      // البوسز في الموجات الكبيرة بس
+      let tList = [types[1]];
+      if (wave > 1) tList.push(types[0]);
+      if (wave % 3 === 0) tList.push(types[2]); // كل ٣ موجات في بوس
+
+      const T = tList[Math.floor(Math.random() * tList.length)];
+      const en = createTank(T.color, T.scale);
+
+      let ex, ez;
+      do {
+        ex = (Math.random() - 0.5) * 80; ez = (Math.random() - 0.5) * 80;
+      } while (Math.hypot(ex - pTank.position.x, ez - pTank.position.z) < 20 || checkWallCollision(ex, ez, en.userData.radius));
+
+      en.position.set(ex, 0, ez);
+      en.userData = { ...en.userData, hp: T.hp, maxHp: T.hp, spd: T.spd, type: T.type, fireCd: T.cd };
+      scene.add(en); enemies.push(en);
+      enemiesAlive++;
+    }
+
+    // ── الجوائز ──
+    function spawnPowerup(x, z) {
+      if (Math.random() > 0.4) return; // 40% فرصة لجائزة عند التدمير
+      const items = [
+        { type: 'health', tex: texHealth, color: 0x2ecc71 },
+        { type: 'multi', tex: texMulti, color: 0xe74c3c },
+        { type: 'shield', tex: texShield, color: 0x3498db }
+      ];
+      const t = items[Math.floor(Math.random() * items.length)];
+      const geo = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+      // وضع الخامة كصورة متصلة عشان تبان كصندوق
+      const mat = new THREE.MeshStandardMaterial({ map: t.tex, emissive: t.color, emissiveIntensity: 0.2, roughness: 0.9 });
+      const p = new THREE.Mesh(geo, mat);
+      p.position.set(x, 1.2, z);
+      p.userData = { type: t.type, rotY: Math.random() * Math.PI, life: 15 }; // يختفي بعد 15 ثانية
+      p.castShadow = true;
+      scene.add(p); powerups.push(p);
+    }
+
+    // ── تحكم وتصويب ──
+    document.addEventListener('keydown', e => { keys[e.key] = true; });
+    document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function updateAim(clientX, clientY) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObject(floor);
+      if (hits.length > 0) {
+        const angle = Math.atan2(hits[0].point.x - pTank.position.x, hits[0].point.z - pTank.position.z);
+        pTank.rotation.y = angle + Math.PI;
+      }
+    }
+
+    function spawnBullet(startPos, angle, isEnemy = false) {
+      const geo = new THREE.SphereGeometry(isEnemy ? 0.2 : 0.25, 8, 8);
+      const mat = new THREE.MeshBasicMaterial({ color: isEnemy ? 0xe74c3c : 0xf1c40f });
+      const bullet = new THREE.Mesh(geo, mat);
+      bullet.position.copy(startPos); bullet.position.y = 1.4;
+      bullet.userData = { vx: Math.sin(angle) * (isEnemy ? 20 : 30), vz: Math.cos(angle) * (isEnemy ? 20 : 30), life: 1.5, isEnemy };
+      scene.add(bullet); bullets.push(bullet);
+    }
+
+    function shoot() {
+      if (!running) return;
+      play(SFX.shoot);
+      const angle = pTank.rotation.y + Math.PI;
+      spawnBullet(pTank.position, angle, false);
+
+      if (activeMulti > 0) {
+        spawnBullet(pTank.position, angle + 0.3, false);
+        spawnBullet(pTank.position, angle - 0.3, false);
+      }
+
+      pTank.position.x -= Math.sin(angle) * 0.2; pTank.position.z -= Math.cos(angle) * 0.2;
+    }
+
+    renderer.domElement.addEventListener('mousemove', e => updateAim(e.clientX, e.clientY));
+    renderer.domElement.addEventListener('mousedown', shoot);
+    document.getElementById('touch-btn').addEventListener('touchstart', e => { if(e.cancelable) e.preventDefault(); shoot(); }, { passive: false });
+
+    let stickJoy = { x: 0, y: 0 };
+    const tJoy = document.getElementById('touch-joystick'), stick = document.getElementById('stick');
+    let tStartX = 0, tStartY = 0;
+    tJoy.addEventListener('touchstart', e => { 
+      if(e.cancelable) e.preventDefault(); 
+      const t = e.touches && e.touches.length > 0 ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : null);
+      if(t) { tStartX = t.clientX; tStartY = t.clientY; }
+    }, { passive: false });
+    tJoy.addEventListener('touchmove', e => {
+      if(e.cancelable) e.preventDefault();
+      const t = e.touches && e.touches.length > 0 ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : null);
+      if(!t) return;
+      const dx = t.clientX - tStartX, dy = t.clientY - tStartY;
+      const dist = Math.hypot(dx, dy); const maxD = 40;
+      const moveX = dist > maxD ? (dx / dist) * maxD : dx;
+      const moveY = dist > maxD ? (dy / dist) * maxD : dy;
+      stick.style.transform = `translate(${moveX}px, ${moveY}px)`;
+      stickJoy = { x: moveX / maxD, y: moveY / maxD };
+    }, { passive: false });
+    tJoy.addEventListener('touchend', e => { stick.style.transform = `translate(0px, 0px)`; stickJoy = { x: 0, y: 0 }; }, { passive: false });
+
+    function explode(x, y, z, color) {
+      play(color === '#3498db' ? SFX.expPlayer : SFX.expEnemy);
+      for (let i = 0; i < 15; i++) {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), new THREE.MeshBasicMaterial({ color: color }));
+        p.position.set(x, y, z);
+        p.userData = { vx: (Math.random() - 0.5) * 15, vy: 5 + Math.random() * 15, vz: (Math.random() - 0.5) * 15, life: 1 };
+        scene.add(p); particles.push(p);
+      }
+    }
+
+    // ── الميني ماب ──
+    const minimapCanvas = document.getElementById('minimap');
+    const mctx = minimapCanvas.getContext('2d');
+    function drawMinimap() {
+      mctx.clearRect(0, 0, 130, 130);
+      const sc = 130 / 100; // حجم الساحة 100x100
+      // خلفية
+      mctx.fillStyle = 'rgba(0,0,0,0.5)'; mctx.fillRect(0, 0, 130, 130);
+      const cx = 65, cy = 65;
+      // حواجز
+      mctx.fillStyle = '#7f8c8d';
+      walls.forEach(w => mctx.fillRect(cx + w.position.x * sc - 2, cy + w.position.z * sc - 2, 4, 4));
+      // جوائز
+      mctx.fillStyle = '#f1c40f';
+      powerups.forEach(p => mctx.fillRect(cx + p.position.x * sc - 1.5, cy + p.position.z * sc - 1.5, 3, 3));
+      // أعداء
+      mctx.fillStyle = '#e74c3c';
+      enemies.forEach(en => { mctx.beginPath(); mctx.arc(cx + en.position.x * sc, cy + en.position.z * sc, 2.5, 0, Math.PI * 2); mctx.fill(); });
+      // لاعب
+      mctx.fillStyle = '#00e5ff';
+      mctx.beginPath(); mctx.arc(cx + pTank.position.x * sc, cy + pTank.position.z * sc, 3, 0, Math.PI * 2); mctx.fill();
+    }
+
+    function startWave(w) {
+      wave = w; document.getElementById('wave').textContent = wave;
+      enemiesToSpawn = 3 + wave * 2;
+      generateWalls();
+      const alertEl = document.getElementById('wave-alert');
+      alertEl.textContent = `الموجة ${wave} بدأت!`;
+      alertEl.style.opacity = 1; alertEl.style.transform = "translate(-50%, -50%) scale(1)";
+      setTimeout(() => { alertEl.style.opacity = 0; alertEl.style.transform = "translate(-50%, -50%) scale(1.5)"; }, 2000);
+    }
+
+    // ── الحلقة الرئيسية ──
+    function loop(ts = 0) {
+      if (!running) return;
+      animId = requestAnimationFrame(loop);
+      const dt = Math.min((ts - lastT) / 1000, 0.04); lastT = ts;
+
+      // موجات
+      if (enemiesToSpawn <= 0 && enemiesAlive === 0) startWave(wave + 1);
+      if (enemiesToSpawn > 0) {
+        waveTimer -= dt;
+        if (waveTimer <= 0) { spawnEnemy(); enemiesToSpawn--; waveTimer = Math.max(1.0, 3.0 - wave * 0.2); }
+      }
+
+      // قوة وحماية اللاعب
+      if (activeShield > 0) { activeShield -= dt; pTank.userData.shield.visible = true; pTank.userData.shield.rotation.y += dt * 2; document.getElementById('icon-shield').classList.add('active'); }
+      else { pTank.userData.shield.visible = false; document.getElementById('icon-shield').classList.remove('active'); }
+
+      if (activeMulti > 0) { activeMulti -= dt; document.getElementById('icon-multi').classList.add('active'); }
+      else { document.getElementById('icon-multi').classList.remove('active'); }
+
+      // حركة اللاعب
+      let mvX = 0, mvZ = 0;
+      if (keys['ArrowUp'] || keys['w']) mvZ -= 1; if (keys['ArrowDown'] || keys['s']) mvZ += 1;
+      if (keys['ArrowLeft'] || keys['a']) mvX -= 1; if (keys['ArrowRight'] || keys['d']) mvX += 1;
+      if (stickJoy.x !== 0 || stickJoy.y !== 0) { mvX = stickJoy.x; mvZ = stickJoy.y; }
+
+      const spd = (10 + score * 0.05) * dt;
+      const nx = pTank.position.x + mvX * spd;
+      const nz = pTank.position.z + mvZ * spd;
+      // التصادم مع الجدران
+      if (!checkWallCollision(nx, pTank.position.z, pTank.userData.radius)) pTank.position.x = nx;
+      if (!checkWallCollision(pTank.position.x, nz, pTank.userData.radius)) pTank.position.z = nz;
+
+      const moveDist = Math.hypot(mvX, mvZ);
+      if (moveDist > 0.01) pTank.userData.wheels.forEach(w => w.rotation.x -= moveDist * spd * 2);
+
+      pTank.position.x = Math.max(-45, Math.min(45, pTank.position.x));
+      pTank.position.z = Math.max(-45, Math.min(45, pTank.position.z));
+      camera.position.x += (pTank.position.x - camera.position.x) * 0.1;
+      camera.position.z += (pTank.position.z + 15 - camera.position.z) * 0.1;
+      camera.lookAt(pTank.position);
+
+      // تحديث الطلقات
+      bullets = bullets.filter(b => {
+        b.position.x += b.userData.vx * dt;
+        b.position.z += b.userData.vz * dt;
+        b.userData.life -= dt;
+        if (b.userData.life <= 0) { scene.remove(b); return false; }
+
+        // تصادم طلقة مع حاجز
+        if (checkWallCollision(b.position.x, b.position.z, 0.2)) {
+          scene.remove(b); play(SFX.hitWall); return false;
+        }
+
+        // تصادم مع الأهداف
+        if (!b.userData.isEnemy) { // طلقة لاعب تضرب الأعداء
+          for (let i = 0; i < enemies.length; i++) {
+            const en = enemies[i];
+            if (Math.hypot(b.position.x - en.position.x, b.position.z - en.position.z) < en.userData.radius * 1.2) {
+              en.userData.hp--;
+              en.children[0].material.emissive.setHex(0xffffff);
+              setTimeout(() => { if (en.children[0]) en.children[0].material.emissive.setHex(0x000000); }, 100);
+              if (en.userData.hp <= 0) {
+                explode(en.position.x, 1, en.position.z, en.children[0].material.color.getHex());
+                spawnPowerup(en.position.x, en.position.z);
+                scene.remove(en); enemies.splice(i, 1); enemiesAlive--;
+                score += (en.userData.type === 'boss' ? 5 : 1);
+                document.getElementById('score').textContent = score;
+              }
+              scene.remove(b); return false;
+            }
+          }
+        } else { // طلقة عدو تضرب لاعب
+          if (Math.hypot(b.position.x - pTank.position.x, b.position.z - pTank.position.z) < pTank.userData.radius * 1.1) {
+            scene.remove(b);
+            if (activeShield > 0) { play(SFX.hitWall); } // محمي
+            else {
+              play(SFX.expPlayer); pHealth -= 20;
+              document.getElementById('health-fill').style.width = Math.max(0, pHealth) + '%';
+              document.getElementById('health-fill').style.background = pHealth > 50 ? '#e74c3c' : pHealth > 20 ? '#e67e22' : '#c0392b';
+              if (pHealth <= 0) gameOver();
+            }
+            return false;
+          }
+        }
+        return true;
+      });
+
+      // تحديث الأعداء (يتجهون للاعب ويضربون)
+      enemies.forEach(en => {
+        // Raycasting check if clear sight to player
+        const distToPlayer = Math.hypot(pTank.position.x - en.position.x, pTank.position.z - en.position.z);
+        const angleToPlayer = Math.atan2(pTank.position.x - en.position.x, pTank.position.z - en.position.z);
+
+        // توجيه البرج للاعب
+        en.rotation.y = angleToPlayer + Math.PI;
+
+        // حركة
+        if (distToPlayer > 10) {
+          const nEx = en.position.x + Math.sin(angleToPlayer) * en.userData.spd * dt;
+          const nEz = en.position.z + Math.cos(angleToPlayer) * en.userData.spd * dt;
+          if (!checkWallCollision(nEx, en.position.z, en.userData.radius)) en.position.x = nEx;
+          if (!checkWallCollision(en.position.x, nEz, en.userData.radius)) en.position.z = nEz;
+          en.userData.wheels.forEach(w => w.rotation.x -= en.userData.spd * dt * 2);
+        }
+
+        // الضرب
+        en.userData.fireCd -= dt;
+        if (en.userData.fireCd <= 0 && distToPlayer < 30) {
+          spawnBullet(en.position, angleToPlayer, true); // زاوية للاعب بشكل مباشر
+          en.userData.fireCd = en.userData.type === 'fast' ? 1.5 : en.userData.type === 'boss' ? 0.8 : 2.5;
+        }
+
+        // التصادم الوحشي (Ramming)
+        if (distToPlayer < en.userData.radius + pTank.userData.radius) {
+          if (activeShield <= 0) { pHealth -= 0.5; document.getElementById('health-fill').style.width = Math.max(0, pHealth) + '%'; }
+          if (pHealth <= 0) gameOver();
+          en.position.x -= Math.sin(angleToPlayer) * 0.5; en.position.z -= Math.cos(angleToPlayer) * 0.5;
+        }
+      });
+
+      // تحديث الجوائز
+      powerups = powerups.filter(p => {
+        p.rotation.y += Math.PI * dt; p.rotation.x += Math.PI / 2 * dt;
+        p.position.y = 1 + Math.sin(ts / 200) * 0.2;
+        p.userData.life -= dt;
+        if (p.userData.life <= 0) { scene.remove(p); return false; }
+
+        if (Math.hypot(p.position.x - pTank.position.x, p.position.z - pTank.position.z) < 2.5) {
+          play(SFX.powerup);
+          if (p.userData.type === 'health') { pHealth = Math.min(100, pHealth + 30); document.getElementById('health-fill').style.width = pHealth + '%'; }
+          if (p.userData.type === 'multi') { activeMulti = 10; }
+          if (p.userData.type === 'shield') { activeShield = 8; }
+          scene.remove(p); return false;
+        }
+        return true;
+      });
+
+      // تحديث الانفجارات
+      particles = particles.filter(p => {
+        p.position.x += p.userData.vx * dt; p.position.y += p.userData.vy * dt; p.position.z += p.userData.vz * dt;
+        p.userData.vy -= 30 * dt; p.userData.life -= dt;
+        p.scale.setScalar(p.userData.life);
+        if (p.userData.life <= 0) { scene.remove(p); return false; }
+        return true;
+      });
+
+      drawMinimap();
+      renderer.render(scene, camera);
+    }
+
+    function gameOver() {
+      running = false; play(SFX.over); cancelAnimationFrame(animId);
+      const ov = document.getElementById('overlay');
+      ov.innerHTML = `
+    <div style="font-size:4rem">💥🔫</div>
+    <h2 style="color:#e74c3c">انتهت المعركة!</h2>
+    <p>صمدت حتى الموجة <strong style="color:#f39c12">${wave}</strong><br>
+    ودمرت:<br><strong style="color:#f39c12;font-size:2.8rem">${score} دبابة</strong></p>
+    <button id="start-btn">بدء حرب جديدة! 🔥</button>
+  `;
+      ov.style.display = 'flex'; document.getElementById('start-btn').addEventListener('click', startGame);
+    }
+
+    function startGame() {
+      document.getElementById('overlay').style.display = 'none';
+      score = 0; pHealth = 100; wave = 0; enemiesAlive = 0; enemiesToSpawn = 0; waveTimer = 0;
+      activeMulti = 0; activeShield = 0;
+      pTank.position.set(0, 0, 0);
+      document.getElementById('score').textContent = score;
+      document.getElementById('health-fill').style.width = '100%';
+
+      enemies.forEach(o => scene.remove(o)); enemies = [];
+      bullets.forEach(b => scene.remove(b)); bullets = [];
+      particles.forEach(p => scene.remove(p)); particles = [];
+      powerups.forEach(p => scene.remove(p)); powerups = [];
+
+      startWave(1);
+      running = true; lastT = performance.now(); loop(lastT);
+    }
+
+    document.getElementById('start-btn').addEventListener('click', startGame);
+    drawMinimap(); renderer.render(scene, camera);
+  </script>
+</body>
+
+</html>

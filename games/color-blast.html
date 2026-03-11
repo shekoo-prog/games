@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎨 Color Blast - عالم الألعاب</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Tajawal:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Fredoka One', cursive;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 20px;
+      user-select: none; overflow: hidden;
+    }
+    #back-btn {
+      position: fixed; top: 18px; right: 18px;
+      background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.25);
+      color: #fff; padding: 10px 22px; border-radius: 50px; font-size: 1rem;
+      cursor: pointer; z-index: 100; backdrop-filter: blur(8px);
+      text-decoration: none; transition: background 0.2s;
+    }
+    #back-btn:hover { background: rgba(255,255,255,0.22); }
+
+    /* ── HUD ── */
+    #hud {
+      display: flex; gap: 18px; margin-bottom: 18px;
+      font-size: 1.35rem; color: #fff; flex-wrap: wrap; justify-content: center;
+    }
+    .hud-item {
+      background: rgba(255,255,255,0.1); border-radius: 14px;
+      padding: 8px 24px; backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .hud-item span { color: #ffd93d; }
+
+    /* ── مؤقت ── */
+    #timer-wrap {
+      width: min(540px, 95vw); height: 20px;
+      background: rgba(255,255,255,0.1); border-radius: 20px;
+      margin-bottom: 20px; overflow: hidden;
+    }
+    #timer-bar {
+      height: 100%; border-radius: 20px;
+      background: linear-gradient(90deg, #6bcb77, #ffd93d, #ff6b6b);
+      transition: width 0.2s linear;
+    }
+
+    /* ── منطقة اللعبة ── */
+    #game-area {
+      background: rgba(255,255,255,0.05);
+      border: 2px solid rgba(255,255,255,0.12);
+      border-radius: 28px; padding: 24px;
+      backdrop-filter: blur(10px);
+      max-width: 560px; width: 100%;
+    }
+
+    /* ── دائرة الهدف ── */
+    #target-section {
+      text-align: center; margin-bottom: 24px;
+    }
+    #target-label {
+      font-size: 1.3rem; color: rgba(255,255,255,0.85);
+      margin-bottom: 10px;
+    }
+    #target-circle {
+      width: 100px; height: 100px; border-radius: 50%;
+      border: 5px solid #fff;
+      margin: 0 auto;
+      box-shadow: 0 0 40px var(--glow, #fff), 0 0 80px var(--glow2, rgba(255,255,255,0.3));
+      animation: targetPulse 1.2s ease-in-out infinite;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    @keyframes targetPulse {
+      0%,100% { transform: scale(1);    box-shadow: 0 0 25px var(--glow,#fff), 0 0 50px var(--glow2,rgba(255,255,255,0.3)); }
+      50%      { transform: scale(1.1); box-shadow: 0 0 45px var(--glow,#fff), 0 0 90px var(--glow2,rgba(255,255,255,0.4)); }
+    }
+    #target-name {
+      margin-top: 12px;
+      font-size: 2rem;
+      font-family: 'Tajawal', sans-serif;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    }
+
+    /* ── شبكة الألوان ── */
+    #colors-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .color-btn {
+      height: 90px;
+      border: none; outline: none; cursor: pointer;
+      border-radius: 20px;
+      transition: transform 0.18s cubic-bezier(.175,.885,.32,1.275), box-shadow 0.18s;
+      position: relative; overflow: hidden;
+      font-family: 'Tajawal', sans-serif;
+      font-size: 1.5rem; font-weight: 900;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      letter-spacing: 1px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .color-btn:hover  { transform: scale(1.06) translateY(-3px); }
+    .color-btn:active { transform: scale(0.93); }
+    .color-btn.correct {
+      animation: correctPop 0.45s ease forwards;
+      pointer-events: none;
+    }
+    @keyframes correctPop {
+      0%   { transform: scale(1); filter: brightness(1); }
+      40%  { transform: scale(1.25) rotate(3deg); filter: brightness(1.6); }
+      100% { transform: scale(0); opacity: 0; }
+    }
+    .color-btn.wrong {
+      animation: wrongShake 0.4s ease;
+    }
+    @keyframes wrongShake {
+      0%,100% { transform: translateX(0); }
+      25%     { transform: translateX(-12px) rotate(-3deg); }
+      75%     { transform: translateX(12px)  rotate(3deg);  }
+    }
+
+    /* ── Overlay ── */
+    #overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,52,96,0.92);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 50; gap: 18px; backdrop-filter: blur(8px);
+    }
+    #overlay h2 { font-size: 2.6rem; }
+    #overlay p  { font-size: 1.15rem; color: rgba(255,255,255,.85); text-align: center; line-height: 2; }
+    #overlay button {
+      background: linear-gradient(135deg, #ffd93d, #ff6b6b);
+      color: #1a1a2e; border: none; padding: 14px 48px;
+      font-size: 1.5rem; border-radius: 50px; cursor: pointer;
+      font-family: 'Fredoka One', cursive;
+      box-shadow: 0 8px 30px rgba(255,217,61,.4);
+      transition: transform 0.2s;
+    }
+    #overlay button:hover { transform: scale(1.08); }
+
+    /* ── تغذية راجعة كبيرة ── */
+    .big-feedback {
+      position: fixed; top: 50%; left: 50%;
+      font-size: 5rem; z-index: 200;
+      animation: feedAnim 0.7s ease forwards;
+      pointer-events: none;
+    }
+    @keyframes feedAnim {
+      0%   { opacity:1; transform:translate(-50%,-50%) scale(0.4); }
+      50%  { opacity:1; transform:translate(-50%,-65%) scale(1.3); }
+      100% { opacity:0; transform:translate(-50%,-90%) scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <a href="../index.html" id="back-btn">🏠 الرئيسية</a>
+
+  <div id="hud">
+    <div class="hud-item">🏆 نقاط: <span id="score">0</span></div>
+    <div class="hud-item">🔥 سلسلة: <span id="streak">0</span></div>
+    <div class="hud-item">⭐ أفضل: <span id="best">0</span></div>
+  </div>
+
+  <div id="timer-wrap"><div id="timer-bar" style="width:100%"></div></div>
+
+  <div id="game-area">
+    <div id="target-section">
+      <div id="target-label">اختر هذا اللون 👇</div>
+      <div id="target-circle"></div>
+      <div id="target-name">—</div>
+    </div>
+    <div id="colors-grid"></div>
+  </div>
+
+  <div id="overlay">
+    <div style="font-size:5rem">🎨</div>
+    <h2 style="color:#ffd93d">Color Blast!</h2>
+    <p>
+      👆 اضغط على اللون الذي يطابق<br>
+      الدائرة الملونة في الأعلى!<br>
+      ⏱️ أسرع = نقاط أكثر!
+    </p>
+    <button id="start-btn">ابدأ اللعبة! 🎨</button>
+  </div>
+
+<script>
+// ── أصوات ──
+function snd(f) { try { const a=new Audio('../sounds/'+f); a.preload='auto'; return a; } catch(e){ return {play:()=>{},currentTime:0}; } }
+const SFX = {
+  correct: snd('mixkit-video-game-treasure-2066.wav'),
+  wrong:   snd('mixkit-negative-guitar-tone-2324.wav'),
+  streak:  snd('mixkit-game-bonus-reached-2065.wav'),
+  start:   snd('mixkit-medieval-show-fanfare-announcement-226.wav'),
+  over:    snd('mixkit-long-game-over-notification-276.wav'),
+};
+function play(s){ try{ s.currentTime=0; s.play().catch(()=>{}); }catch(e){} }
+
+// ── 6 ألوان واضحة للأطفال فقط ──
+const COLORS = [
+  { hex: '#e74c3c', name: 'أحمر',    glow: '#e74c3c', glow2: 'rgba(231,76,60,0.4)'   },
+  { hex: '#f1c40f', name: 'أصفر',    glow: '#f1c40f', glow2: 'rgba(241,196,15,0.4)'   },
+  { hex: '#2ecc71', name: 'أخضر',    glow: '#2ecc71', glow2: 'rgba(46,204,113,0.4)'   },
+  { hex: '#3498db', name: 'أزرق',    glow: '#3498db', glow2: 'rgba(52,152,219,0.4)'   },
+  { hex: '#9b59b6', name: 'بنفسجي',  glow: '#9b59b6', glow2: 'rgba(155,89,182,0.4)'   },
+  { hex: '#e67e22', name: 'برتقالي', glow: '#e67e22', glow2: 'rgba(230,126,34,0.4)'   },
+];
+
+let score=0, best=0, streak=0, running=false;
+let timeLeft=100, timerInt;
+let targetColor;
+
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+// اختر لون هدف جديد (مختلف عن السابق)
+function pickTarget() {
+  let c;
+  do { c = COLORS[Math.floor(Math.random() * COLORS.length)]; }
+  while (c === targetColor);
+  targetColor = c;
+
+  const circle = document.getElementById('target-circle');
+  circle.style.background = c.hex;
+  circle.style.setProperty('--glow',  c.glow);
+  circle.style.setProperty('--glow2', c.glow2);
+  document.getElementById('target-name').textContent = c.name;
+  document.getElementById('target-name').style.color = c.hex;
+}
+
+// بناء الأزرار (4 ألوان عشوائية تشمل الهدف)
+function buildGrid() {
+  const grid = document.getElementById('colors-grid');
+  grid.innerHTML = '';
+
+  // اختر 3 ألوان مختلفة + الهدف
+  const others = shuffle(COLORS.filter(c => c !== targetColor)).slice(0, 3);
+  const choices = shuffle([targetColor, ...others]);
+
+  choices.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'color-btn';
+    btn.style.background = c.hex;
+    btn.style.boxShadow  = `0 6px 24px ${c.hex}66, inset 0 1px 0 rgba(255,255,255,0.25)`;
+    btn.textContent = c.name;
+    btn.dataset.hex = c.hex;
+    btn.style.animationDelay = (i * 0.06) + 's';
+    btn.addEventListener('click', () => onPick(btn, c));
+    grid.appendChild(btn);
+  });
+}
+
+function onPick(btn, c) {
+  if (!running) return;
+
+  if (c.hex === targetColor.hex) {
+    // ✅ صح
+    streak++;
+    const bonus = Math.min(streak * 5, 50);
+    score += 10 + bonus;
+    document.getElementById('score').textContent  = score;
+    document.getElementById('streak').textContent = streak;
+    best = Math.max(best, score);
+    document.getElementById('best').textContent   = best;
+    btn.classList.add('correct');
+    showFeedback(streak >= 5 ? '🔥' : streak >= 3 ? '😃' : '✅');
+    if (streak % 5 === 0) play(SFX.streak); else play(SFX.correct);
+    // أعد ضبط الوقت ووليّد سؤال جديد
+    timeLeft = 100;
+    setTimeout(() => { pickTarget(); buildGrid(); }, 380);
+  } else {
+    // ❌ غلط
+    play(SFX.wrong);
+    streak = 0;
+    document.getElementById('streak').textContent = 0;
+    btn.classList.add('wrong');
+    showFeedback('❌');
+    setTimeout(() => btn.classList.remove('wrong'), 400);
+    // عقوبة وقت بسيطة
+    timeLeft = Math.max(0, timeLeft - 12);
+  }
+}
+
+function showFeedback(emoji) {
+  const el = document.createElement('div');
+  el.className = 'big-feedback';
+  el.textContent = emoji;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 700);
+}
+
+// ── المؤقت: ينزل ببطء (بدل 1 في 80ms → 1 في 120ms) ──
+function startTimer() {
+  clearInterval(timerInt);
+  timerInt = setInterval(() => {
+    if (!running) return;
+    timeLeft = Math.max(0, timeLeft - 1);
+    document.getElementById('timer-bar').style.width = timeLeft + '%';
+    if (timeLeft <= 0) endGame();
+  }, 120);  // أبطأ من قبل (كان 80ms)
+}
+
+function startGame() {
+  play(SFX.start);
+  document.getElementById('overlay').style.display = 'none';
+  score = 0; streak = 0; timeLeft = 100; running = true;
+  document.getElementById('score').textContent  = 0;
+  document.getElementById('streak').textContent = 0;
+  document.getElementById('timer-bar').style.width = '100%';
+  clearInterval(timerInt);
+  pickTarget();
+  buildGrid();
+  startTimer();
+}
+
+function endGame() {
+  play(SFX.over);
+  running = false;
+  clearInterval(timerInt);
+  const ov = document.getElementById('overlay');
+  ov.innerHTML = `
+    <div style="font-size:4rem">🎨</div>
+    <h2 style="color:#ffd93d">أحسنت!</h2>
+    <p>
+      نقاطك: <strong style="color:#ffd93d;font-size:2.2rem">${score}</strong><br>
+      أعلى سلسلة: <strong style="color:#ff6fc8">${document.getElementById('streak').textContent}</strong> 🔥<br>
+      أعلى نقاط: <strong style="color:#4d96ff">${best}</strong>
+    </p>
+    <button id="start-btn">العب مجدداً! 🎨</button>
+  `;
+  ov.style.display = 'flex';
+  document.getElementById('start-btn').addEventListener('click', startGame);
+}
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+</script>
+</body>
+</html>

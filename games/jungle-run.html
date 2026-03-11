@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐒 ركض الغابة 3D - عالم الألعاب</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Fredoka One', cursive; background: #1a3610; 
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; overflow: hidden; user-select: none; }
+    
+    #back-btn {
+      position: fixed; top: 18px; right: 18px;
+      background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.25);
+      color: #fff; padding: 10px 22px; border-radius: 50px; font-size: 1rem;
+      cursor: pointer; z-index: 100; backdrop-filter: blur(8px);
+      text-decoration: none; transition: background 0.2s;
+    }
+    #back-btn:hover { background: rgba(255,255,255,0.22); }
+
+    #hud {
+      position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 14px; z-index: 10; font-size: 1.2rem; color: #fff;
+    }
+    .hud-chip {
+      background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px; padding: 8px 16px; backdrop-filter: blur(6px);
+    }
+    .hud-chip span { color: #f1c40f; }
+    #lives-display { color: #e74c3c; }
+
+    #renderer-wrap {
+      border-radius: 20px; overflow: hidden;
+      border: 3px solid rgba(46, 204, 113, 0.5);
+      box-shadow: 0 0 60px rgba(46, 204, 113, 0.3);
+      position: relative;
+    }
+
+    #touch-controls {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 20px; z-index: 20; width: 100%; justify-content: center;
+    }
+    .ctrl-btn {
+      width: 70px; height: 70px; border-radius: 50%;
+      background: rgba(46, 204, 113, 0.15); border: 2px solid rgba(46, 204, 113, 0.5);
+      color: #fff; font-size: 2rem; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; backdrop-filter: blur(6px);
+      /* تحسين استجابة اللمس السريعة */
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    }
+    .ctrl-btn:active { background: rgba(46, 204, 113, 0.45); }
+
+    #overlay {
+      position: fixed; inset: 0; background: rgba(10, 30, 10, 0.92);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 50; gap: 16px; backdrop-filter: blur(8px);
+    }
+    #overlay h2 { font-size: 3.5rem; color: #2ecc71; text-align: center; }
+    #overlay p { font-size: 1.25rem; color: rgba(255,255,255,0.85); text-align: center; line-height: 1.9; }
+    #overlay button {
+      background: linear-gradient(135deg, #2ecc71, #27ae60);
+      color: #fff; border: none; padding: 15px 50px; font-size: 1.5rem;
+      border-radius: 50px; cursor: pointer; font-family: 'Fredoka One', cursive;
+      box-shadow: 0 8px 30px rgba(46, 204, 113, 0.4); transition: transform 0.2s;
+    }
+    #overlay button:hover { transform: scale(1.08); }
+  </style>
+</head>
+<body>
+  <a href="../index.html" id="back-btn">🏠 الرئيسية</a>
+  
+  <div id="hud">
+    <div class="hud-chip">🍌 موز: <span id="score">0</span></div>
+    <div class="hud-chip">❤️ أرواح: <span id="lives-display">❤️❤️❤️</span></div>
+  </div>
+
+  <div id="renderer-wrap">
+    <div id="three-container"></div>
+    <div id="touch-controls">
+      <div class="ctrl-btn" id="btn-left">◀</div>
+      <div class="ctrl-btn" id="btn-up">▲</div>
+      <div class="ctrl-btn" id="btn-right">▶</div>
+    </div>
+  </div>
+
+  <div id="overlay">
+    <div style="font-size:5rem">🏃🐒🌲</div>
+    <h2>هروب الغابة!</h2>
+    <p>
+      العب بالقرد، <strong>اقفز</strong> من فوق الجذوع، و<strong>تحرك</strong> لليمين واليسار!<br>
+      استخدم <strong>الأسهم</strong> أو اسحب على الشاشة!<br>
+      اجمع الموز 🍌 لأعلى سكور، وسرعتك ستزيد!
+    </p>
+    <button id="start-btn">بدء الركض 🔥</button>
+  </div>
+
+<script>
+// ── أصوات ──
+function snd(f) { try { const a=new Audio('../sounds/'+f); a.preload='auto'; return a; } catch(e){ return {play:()=>{},currentTime:0}; } }
+const SFX = {
+  jump:  snd('mixkit-player-jumping-in-a-video-game-2043.wav'),
+  coin:  snd('mixkit-video-game-treasure-2066.wav'),
+  crash: snd('mixkit-video-game-bomb-alert-2803.wav'),
+  over:  snd('mixkit-long-game-over-notification-276.wav'),
+  start: snd('mixkit-arcade-rising-231.wav')
+};
+function play(s){ try{ s.currentTime=0; s.play().catch(()=>{}); }catch(e){} }
+
+const W = Math.min(window.innerWidth - 30, 800);
+const H = Math.min(window.innerHeight - 100, 600);
+document.getElementById('renderer-wrap').style.width  = W + 'px';
+document.getElementById('renderer-wrap').style.height = H + 'px';
+
+// ── إعداد الثري دي ──
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB); // سماء زرقاء
+scene.fog = new THREE.Fog(0x87CEEB, 20, 90);
+
+const camera = new THREE.PerspectiveCamera(60, W/H, 0.1, 150);
+camera.position.set(0, 7, 12);
+camera.lookAt(0, 1, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(W, H);
+renderer.shadowMap.enabled = true;
+document.getElementById('three-container').appendChild(renderer.domElement);
+
+// ── إضاءة ──
+scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+dirLight.position.set(15, 30, 15);
+dirLight.castShadow = true;
+// توسيع كاميرا الظل لتغطي مساحة مسار واسعة
+dirLight.shadow.camera.left = -20;
+dirLight.shadow.camera.right = 20;
+dirLight.shadow.camera.top = 20;
+dirLight.shadow.camera.bottom = -50;
+scene.add(dirLight);
+
+// ── البيئة ──
+// الأرضية الخضراء الفاتحة
+const groundGeo = new THREE.PlaneGeometry(150, 300);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x27ae60, roughness: 1 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// مسار ترابي للركض
+const pathGeo = new THREE.PlaneGeometry(12, 300);
+const pathMat = new THREE.MeshStandardMaterial({ color: 0xd35400, roughness: 1 });
+const path = new THREE.Mesh(pathGeo, pathMat);
+path.rotation.x = -Math.PI/2;
+path.position.y = 0.05; // فوق العشب قليلاً
+path.receiveShadow = true;
+scene.add(path);
+
+// أشجار جانبيّة للزينة تتحرك للخلف
+const trees = [];
+const treeGeo = new THREE.ConeGeometry(2, 6, 8);
+const trunkGeo = new THREE.CylinderGeometry(0.5, 0.5, 2, 8);
+const treeMat = new THREE.MeshStandardMaterial({ color: 0x1e8449 });
+const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037 });
+
+function spawnTreeSides() {
+  const g = new THREE.Group();
+  const top = new THREE.Mesh(treeGeo, treeMat);
+  top.position.y = 4;
+  top.castShadow = true;
+  const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+  trunk.position.y = 1;
+  trunk.castShadow = true;
+  g.add(top); g.add(trunk);
+  
+  // يمين أو يسار المسار الترابي
+  const isRight = Math.random() > 0.5;
+  g.position.set((isRight ? 1 : -1) * (10 + Math.random()*15), 0, -100);
+  scene.add(g);
+  trees.push(g);
+}
+
+// ── اللاعب (شخصية مجسمة قرد/مغامر) ──
+function createPlayer() {
+  const group = new THREE.Group();
+  
+  // الرأس
+  const headGeo = new THREE.DodecahedronGeometry(0.7);
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0xe67e22, roughness: 0.6 });
+  const head = new THREE.Mesh(headGeo, skinMat);
+  head.position.y = 2.2;
+  head.castShadow = true;
+  group.add(head);
+
+  // الجسم
+  const bodyGeo = new THREE.BoxGeometry(1.2, 1.5, 0.8);
+  const clothesMat = new THREE.MeshStandardMaterial({ color: 0x2980b9 }); // ملابس زرقاء
+  const body = new THREE.Mesh(bodyGeo, clothesMat);
+  body.position.y = 1.0;
+  body.castShadow = true;
+  group.add(body);
+
+  // نظارة للروشنة
+  const glassGeo = new THREE.BoxGeometry(1.0, 0.3, 0.8);
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x111, metalness: 0.8 });
+  const glass = new THREE.Mesh(glassGeo, glassMat);
+  glass.position.set(0, 2.3, 0.2);
+  group.add(glass);
+
+  return group;
+}
+
+const player = createPlayer();
+scene.add(player);
+
+const LANES = [-3.5, 0, 3.5];
+let score=0, lives=3, running=false;
+let laneIdx=1, targetX = LANES[1];
+let speed=25; 
+let jumpVy = 0, isJumping = false;
+let obstacles=[], coins=[];
+
+// ── توليد العقبات والعملات ──
+function spawnObstacle() {
+  // نوعين: جذع شجرة عرضي (لازم ينط)، صخرة كبيرة (لازم يتفاداها يمين/شمال)
+  const isLog = Math.random() > 0.4;
+  
+  let obs;
+  if (isLog) {
+    const geo = new THREE.CylinderGeometry(0.7, 0.7, 3.2, 8);
+    geo.rotateZ(Math.PI/2);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x6e2c00 });
+    obs = new THREE.Mesh(geo, mat);
+    obs.position.y = 0.7; // مركز الجذع
+    obs.userData = { type: 'log', hitRadiusX: 1.5, hitRadiusY: 1.4 };
+  } else {
+    const geo = new THREE.DodecahedronGeometry(1.2);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d });
+    obs = new THREE.Mesh(geo, mat);
+    obs.position.y = 1.0;
+    obs.userData = { type: 'rock', hitRadiusX: 1.2, hitRadiusY: 1.2 };
+  }
+  
+  obs.position.set(LANES[Math.floor(Math.random()*3)], obs.position.y, -120);
+  obs.castShadow = true;
+  scene.add(obs);
+  obstacles.push(obs);
+}
+
+function spawnBanana() {
+  const geo = new THREE.CylinderGeometry(0.2, 0.2, 1.2, 8, 1, false, 0, Math.PI); // هلال يشبه الموز
+  geo.rotateZ(Math.PI/2);
+  const mat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, emissive: 0xf39c12, emissiveIntensity: 0.3 });
+  const ban = new THREE.Mesh(geo, mat);
+  
+  // أحياناً الموز بيكون عالي فلازم ينط عشان يجيبه
+  const isHigh = Math.random() > 0.7;
+  ban.position.set(LANES[Math.floor(Math.random()*3)], isHigh ? 3.5 : 1.2, -120);
+  scene.add(ban);
+  coins.push(ban);
+}
+
+// ── التحكم ──
+function moveLeft() { if(laneIdx>0) { laneIdx--; targetX=LANES[laneIdx]; } }
+function moveRight() { if(laneIdx<2) { laneIdx++; targetX=LANES[laneIdx]; } }
+function jump() {
+  if(!isJumping) {
+    isJumping = true;
+    jumpVy = 18; // سرعة القفزة
+    play(SFX.jump);
+  }
+}
+
+// الكيبورد
+document.addEventListener('keydown', e => {
+  if(!running) return;
+  if(e.key==='ArrowLeft' || e.key==='a') moveLeft();
+  if(e.key==='ArrowRight'|| e.key==='d') moveRight();
+  if(e.key==='ArrowUp'   || e.key==='w' || e.key===' ') jump();
+});
+
+// الأزرار
+document.getElementById('btn-left').addEventListener('touchstart', e => { if(e.cancelable) e.preventDefault(); if(running) moveLeft(); }, {passive:false});
+document.getElementById('btn-left').addEventListener('mousedown', () => { if(running) moveLeft(); });
+
+document.getElementById('btn-right').addEventListener('touchstart', e => { if(e.cancelable) e.preventDefault(); if(running) moveRight(); }, {passive:false});
+document.getElementById('btn-right').addEventListener('mousedown', () => { if(running) moveRight(); });
+
+document.getElementById('btn-up').addEventListener('touchstart', e => { if(e.cancelable) e.preventDefault(); if(running) jump(); }, {passive:false});
+document.getElementById('btn-up').addEventListener('mousedown', () => { if(running) jump(); });
+
+// اللمس والسحب (Swipe)
+let touchStartX = 0, touchStartY = 0;
+renderer.domElement.addEventListener('touchstart', e => {
+  const t = e.touches && e.touches.length > 0 ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : null);
+  if(t) { touchStartX = t.clientX; touchStartY = t.clientY; }
+}, {passive:true});
+renderer.domElement.addEventListener('touchend', e => {
+  if(!running) return;
+  const t = e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0] : (e.touches ? e.touches[0] : null);
+  if(!t) return;
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+  
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx < -40) moveLeft();
+    if (dx > 40) moveRight();
+  } else {
+    if (dy < -40) jump();
+  }
+}, {passive:true});
+
+// ── حلقة اللعبة ──
+let lastT=0, hitFlash=0, envTimer=0;
+function animate(ts=0) {
+  requestAnimationFrame(animate);
+  if(!running) { renderer.render(scene, camera); return; }
+
+  const dt = Math.min((ts - lastT)/1000, 0.04); lastT=ts;
+
+  speed = 40 + score / 5; // سرعة عالية!
+
+  // تحديث الشجر (خلفية)
+  trees.forEach(t => t.position.z += speed * dt);
+  if(trees.length > 0 && trees[0].position.z > 20) {
+    scene.remove(trees[0]);
+    trees.shift();
+  }
+
+  // حركة اللاعب للأجناب
+  player.position.x += (targetX - player.position.x) * 0.2;
+  player.rotation.y = (targetX - player.position.x) * -0.1; // إمالة خفيفة
+  player.rotation.x = Math.sin(ts/100) * 0.1; // حركة جري
+
+  // القفز والجاذبية
+  if (isJumping) {
+    player.position.y += jumpVy * dt;
+    jumpVy -= 45 * dt; // قوة الجاذبية
+    if (player.position.y <= 0) {
+      player.position.y = 0;
+      isJumping = false;
+      jumpVy = 0;
+    }
+  }
+
+  // مولدات
+  envTimer += dt;
+  if(envTimer > Math.max(0.4, 0.8 - score/150)) {
+    envTimer = 0;
+    // عشوائية عالية: شجر أو موز أو عقبة
+    const r = Math.random();
+    if(r < 0.4) spawnObstacle();
+    else if(r < 0.8) spawnBanana();
+    spawnTreeSides(); 
+  }
+
+  // الكاميرا (تهتز قليلاً وتتبع اللاعب بشكل مرن)
+  camera.position.x = player.position.x * 0.5;
+  camera.lookAt(player.position.x * 0.2, player.position.y * 0.5 + 2, 0);
+
+  // تحديث العقبات
+  obstacles = obstacles.filter(o => {
+    o.position.z += speed * dt;
+    if(o.position.z > 20) { scene.remove(o); return false; }
+    
+    // تصادم!
+    // قياس الفروق الأفقية والعمودية
+    const dx = Math.abs(o.position.x - player.position.x);
+    const dy = Math.abs(o.position.y - (player.position.y + 1.5)); // 1.5 لأن مركز الجسد أعلى
+    const dz = Math.abs(o.position.z - player.position.z);
+    
+    const hx = o.userData.hitRadiusX;
+    const hy = o.userData.hitRadiusY;
+
+    if (dx < hx && dy < hy && dz < 1.0) {
+      scene.remove(o);
+      hitFlash = 15;
+      lives--;
+      document.getElementById('lives-display').textContent = '❤️'.repeat(Math.max(0, lives));
+      play(SFX.crash);
+      // انيميشن ضربة
+      player.position.z = 2; setTimeout(()=>{ player.position.z = 0; }, 200);
+
+      if(lives <= 0) gameOver();
+      return false;
+    }
+    return true;
+  });
+
+  // تحديث الموز
+  coins = coins.filter(c => {
+    c.position.z += speed * dt;
+    c.rotation.y += Math.PI * dt;
+    c.rotation.x += Math.PI * dt;
+    
+    if(c.position.z > 20) { scene.remove(c); return false; }
+    
+    const dx = Math.abs(c.position.x - player.position.x);
+    const dy = Math.abs(c.position.y - (player.position.y + 1.2));
+    const dz = Math.abs(c.position.z - player.position.z);
+    
+    if (dx < 1.5 && dy < 1.5 && dz < 1.5) {
+      scene.remove(c);
+      score += 10;
+      document.getElementById('score').textContent = score;
+      play(SFX.coin);
+      return false;
+    }
+    return true;
+  });
+
+  if (hitFlash > 0) {
+    hitFlash--;
+    player.children[1].material.color.setHex(hitFlash%2===0 ? 0xe74c3c : 0x2980b9);
+  } else {
+    player.children[1].material.color.setHex(0x2980b9);
+  }
+
+  renderer.render(scene, camera);
+}
+
+function gameOver() {
+  running = false;
+  play(SFX.over);
+  const ov = document.getElementById('overlay');
+  ov.innerHTML = `
+    <div style="font-size:4rem">💥</div>
+    <h2 style="color:#e74c3c">اصطدمت البطل!</h2>
+    <p>لقد جمعت موزاً طازجاً 🍌:<br><strong style="color:#f1c40f;font-size:2.8rem">${score}</strong></p>
+    <button id="start-btn">هروب جديد! 🏃</button>
+  `;
+  ov.style.display = 'flex';
+  document.getElementById('start-btn').addEventListener('click', startGame);
+}
+
+function startGame() {
+  document.getElementById('overlay').style.display = 'none';
+  play(SFX.start);
+  score = 0; lives = 3; laneIdx = 1; targetX = LANES[1];
+  player.position.set(0,0,0); isJumping = false; jumpVy = 0;
+  envTimer = 0; hitFlash = 0;
+  
+  obstacles.forEach(o => scene.remove(o)); obstacles = [];
+  coins.forEach(c => scene.remove(c));     coins = [];
+  trees.forEach(t => scene.remove(t));     trees = [];
+  
+  document.getElementById('score').textContent = 0;
+  document.getElementById('lives-display').textContent = '❤️❤️❤️';
+  running = true;
+}
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
