@@ -150,6 +150,53 @@
             .header h1 { font-size: 2.2rem; }
             .card-icon { font-size: 2.8rem; }
         }
+
+        /* Stars and Shapes Background Styles */
+        #stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            opacity: var(--op);
+            animation: twinkle var(--dur) infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: var(--op); transform: scale(1); }
+            50% { opacity: 0.2; transform: scale(0.5); }
+        }
+
+        #shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            pointer-events: none;
+            filter: blur(80px);
+            opacity: 0.3;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            animation: float var(--sd) infinite alternate ease-in-out;
+        }
+
+        @keyframes float {
+            from { transform: translate(0, 0) rotate(0deg); }
+            to { transform: translate(50px, 50px) rotate(20deg); }
+        }
     </style>
 </head>
 <body>
@@ -293,7 +340,52 @@
             <div class="card-title">ضربات جزاء</div>
             <span class="card-badge">جديد🔥</span>
         </a>
-    </main>
 
+    <div id="stars"></div>
+    <div id="shapes"></div>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Service Worker Registration and Auto-Update Logic
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('SW registered:', registration);
+                        
+                        // Force update check every 10 minutes
+                        setInterval(() => {
+                            registration.update();
+                            console.log('[SW] Checking for updates...');
+                        }, 1000 * 60 * 10); 
+                        
+                        registration.onupdatefound = () => {
+                            const installingWorker = registration.installing;
+                            installingWorker.onstatechange = () => {
+                                if (installingWorker.state === 'installed') {
+                                    if (navigator.serviceWorker.controller) {
+                                        // New update available
+                                        console.log('New version available! Reloading...');
+                                        // The new SW will call skipWaiting(), triggering controllerchange
+                                    }
+                                }
+                            };
+                        };
+                    })
+                    .catch(error => {
+                        console.error('SW registration failed:', error);
+                    });
+            });
+
+            // Reload the page when the new service worker takes control
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
+        }
+    </script>
 </body>
 </html>
