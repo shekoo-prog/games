@@ -2,11 +2,11 @@
 <html lang="ar" dir="rtl">
 
 <head>
+  <link rel="stylesheet" href="../assets/css/fonts-games.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🚀 حرب الدبابات الملونة 3D - عالم الألعاب</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="../js/core/libs/three.min.js"></script>
   <style>
     *,
     *::before,
@@ -271,15 +271,15 @@
   </div>
 
   <script>
-    // ── أصوات ──
-    function snd(f) { try { const a = new Audio('../sounds/' + f); a.preload = 'auto'; return a; } catch (e) { return { play: () => { }, currentTime: 0 }; } }
+    
+    function snd(f) { try { const a = new Audio('../assets/sounds/' + f); a.preload = 'auto'; return a; } catch (e) { return { play: () => { }, currentTime: 0 }; } }
     const SFX = {
       shoot: snd('mixkit-retro-video-game-bubble-laser-277.wav'),
       expPlayer: snd('mixkit-player-losing-or-failing-2042.wav'),
       expEnemy: snd('mixkit-game-blood-pop-slide-2363.wav'),
       start: snd('mixkit-arcade-rising-231.wav'),
       powerup: snd('mixkit-video-game-treasure-2066.wav'),
-      hitWall: snd('mixkit-negative-guitar-tone-2324.wav') // صوت اصطدام الدرع/الحائط
+      hitWall: snd('mixkit-negative-guitar-tone-2324.wav') 
     };
     function play(s) { try { s.currentTime = 0; s.play().catch(() => { }); } catch (e) { } }
 
@@ -288,13 +288,13 @@
     document.getElementById('renderer-wrap').style.width = W + 'px';
     document.getElementById('renderer-wrap').style.height = H + 'px';
 
-    // ── توليد خامات ──
+    
     function createDirtTexture() {
       const c = document.createElement('canvas'); c.width = 512; c.height = 512;
       const ctx = c.getContext('2d');
-      ctx.fillStyle = '#C2B280'; ctx.fillRect(0, 0, 512, 512); // لون رمال الصحراء
+      ctx.fillStyle = '#C2B280'; ctx.fillRect(0, 0, 512, 512); 
       for (let i = 0; i < 6000; i++) {
-        ctx.fillStyle = Math.random() > 0.5 ? '#A89F68' : '#D1C594'; // تفاصيل رمل وحصى
+        ctx.fillStyle = Math.random() > 0.5 ? '#A89F68' : '#D1C594'; 
         ctx.fillRect(Math.random() * 512, Math.random() * 512, 2 + Math.random() * 3, 2 + Math.random() * 3);
       }
       const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(10, 10);
@@ -316,9 +316,9 @@
     function createWallTexture() {
       const c = document.createElement('canvas'); c.width = 128; c.height = 128;
       const ctx = c.getContext('2d');
-      ctx.fillStyle = '#7f8c8d'; ctx.fillRect(0, 0, 128, 128); // رمادي حجري
+      ctx.fillStyle = '#7f8c8d'; ctx.fillRect(0, 0, 128, 128); 
       ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
-      // رسم طوب
+      
       for (let y = 0; y < 128; y += 16) {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(128, y); ctx.stroke();
         for (let x = (y % 32 === 0) ? 0 : -16; x < 128; x += 32) {
@@ -332,19 +332,19 @@
     function createCrateTexture(emoji, bgColor) {
       const c = document.createElement('canvas'); c.width = 128; c.height = 128;
       const ctx = c.getContext('2d');
-      // خلفية بلون الجائزة
+      
       ctx.fillStyle = bgColor; ctx.fillRect(0, 0, 128, 128);
-      // إطار الصندوق الخشبي وخطوطه
+      
       ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 4;
       ctx.strokeRect(2, 2, 124, 124);
       ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(128,128); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(128,0); ctx.lineTo(0,128); ctx.stroke();
       
-      // خلفية دائرية للإيموجي عشان يكون واضح
+      
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       ctx.beginPath(); ctx.arc(64,64, 40, 0, Math.PI*2); ctx.fill();
       
-      // الإيموجي أو الأيقونة
+      
       ctx.font = '50px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(emoji, 64, 68);
       const tex = new THREE.CanvasTexture(c);
@@ -359,7 +359,7 @@
     const texMulti  = createCrateTexture('🚀', '#e74c3c');
     const texShield = createCrateTexture('🛡️', '#3498db');
 
-    // ── الثري دي ──
+    
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x34495e);
     scene.fog = new THREE.Fog(0x34495e, 25, 75);
@@ -390,7 +390,7 @@
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // ── اللعبة: جدران وعدو ومستويات ──
+    
     let walls = [], enemies = [], bullets = [], particles = [], powerups = [];
     let running = false, lastT = 0, animId;
     let pHealth = 100, score = 0, wave = 1;
@@ -404,7 +404,7 @@
       const mat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.9 });
       for (let i = 0; i < 25; i++) {
         const wx = (Math.random() - 0.5) * 70; const wz = (Math.random() - 0.5) * 70;
-        if (Math.hypot(wx, wz) < 15) continue; // تفريغ المنتصف للاعب
+        if (Math.hypot(wx, wz) < 15) continue; 
         const w = new THREE.Mesh(geo, mat);
         w.position.set(wx, 1.5, wz);
         w.castShadow = true; w.receiveShadow = true;
@@ -419,7 +419,7 @@
       return false;
     }
 
-    // ── الدبابات ──
+    
     function createTank(color, scale = 1) {
       const tGroup = new THREE.Group();
       const camoMat = new THREE.MeshStandardMaterial({ map: camoTex, color: color, roughness: 0.8 });
@@ -453,7 +453,7 @@
         const lw = new THREE.Mesh(wGeo, wMat); lw.position.set(-1.4, 0.35, z); tGroup.add(lw); wheels.push(lw);
       });
 
-      // درع شفاف (للاعب فقط يتم تفعيله)
+      
       const shieldGeo = new THREE.SphereGeometry(3, 16, 16);
       const shieldMat = new THREE.MeshBasicMaterial({ color: 0x3498db, transparent: true, opacity: 0.3, wireframe: true });
       const shield = new THREE.Mesh(shieldGeo, shieldMat);
@@ -465,7 +465,7 @@
       return tGroup;
     }
 
-    const pTank = createTank(0x3498db); // Player
+    const pTank = createTank(0x3498db); 
     scene.add(pTank);
 
     function spawnEnemy() {
@@ -475,10 +475,10 @@
         { type: 'boss', hp: 6, spd: 3, scale: 1.4, color: 0x2c3e50, cd: 1.0 }
       ];
 
-      // البوسز في الموجات الكبيرة بس
+      
       let tList = [types[1]];
       if (wave > 1) tList.push(types[0]);
-      if (wave % 3 === 0) tList.push(types[2]); // كل ٣ موجات في بوس
+      if (wave % 3 === 0) tList.push(types[2]); 
 
       const T = tList[Math.floor(Math.random() * tList.length)];
       const en = createTank(T.color, T.scale);
@@ -494,9 +494,9 @@
       enemiesAlive++;
     }
 
-    // ── الجوائز ──
+    
     function spawnPowerup(x, z) {
-      if (Math.random() > 0.4) return; // 40% فرصة لجائزة عند التدمير
+      if (Math.random() > 0.4) return; 
       const items = [
         { type: 'health', tex: texHealth, color: 0x2ecc71 },
         { type: 'multi', tex: texMulti, color: 0xe74c3c },
@@ -504,16 +504,16 @@
       ];
       const t = items[Math.floor(Math.random() * items.length)];
       const geo = new THREE.BoxGeometry(1.4, 1.4, 1.4);
-      // وضع الخامة كصورة متصلة عشان تبان كصندوق
+      
       const mat = new THREE.MeshStandardMaterial({ map: t.tex, emissive: t.color, emissiveIntensity: 0.2, roughness: 0.9 });
       const p = new THREE.Mesh(geo, mat);
       p.position.set(x, 1.2, z);
-      p.userData = { type: t.type, rotY: Math.random() * Math.PI, life: 15 }; // يختفي بعد 15 ثانية
+      p.userData = { type: t.type, rotY: Math.random() * Math.PI, life: 15 }; 
       p.castShadow = true;
       scene.add(p); powerups.push(p);
     }
 
-    // ── تحكم وتصويب ──
+    
     document.addEventListener('keydown', e => { keys[e.key] = true; });
     document.addEventListener('keyup', e => { keys[e.key] = false; });
 
@@ -590,25 +590,25 @@
       }
     }
 
-    // ── الميني ماب ──
+    
     const minimapCanvas = document.getElementById('minimap');
     const mctx = minimapCanvas.getContext('2d');
     function drawMinimap() {
       mctx.clearRect(0, 0, 130, 130);
-      const sc = 130 / 100; // حجم الساحة 100x100
-      // خلفية
+      const sc = 130 / 100; 
+      
       mctx.fillStyle = 'rgba(0,0,0,0.5)'; mctx.fillRect(0, 0, 130, 130);
       const cx = 65, cy = 65;
-      // حواجز
+      
       mctx.fillStyle = '#7f8c8d';
       walls.forEach(w => mctx.fillRect(cx + w.position.x * sc - 2, cy + w.position.z * sc - 2, 4, 4));
-      // جوائز
+      
       mctx.fillStyle = '#f1c40f';
       powerups.forEach(p => mctx.fillRect(cx + p.position.x * sc - 1.5, cy + p.position.z * sc - 1.5, 3, 3));
-      // أعداء
+      
       mctx.fillStyle = '#e74c3c';
       enemies.forEach(en => { mctx.beginPath(); mctx.arc(cx + en.position.x * sc, cy + en.position.z * sc, 2.5, 0, Math.PI * 2); mctx.fill(); });
-      // لاعب
+      
       mctx.fillStyle = '#00e5ff';
       mctx.beginPath(); mctx.arc(cx + pTank.position.x * sc, cy + pTank.position.z * sc, 3, 0, Math.PI * 2); mctx.fill();
     }
@@ -623,27 +623,27 @@
       setTimeout(() => { alertEl.style.opacity = 0; alertEl.style.transform = "translate(-50%, -50%) scale(1.5)"; }, 2000);
     }
 
-    // ── الحلقة الرئيسية ──
+    
     function loop(ts = 0) {
       if (!running) return;
       animId = requestAnimationFrame(loop);
       const dt = Math.min((ts - lastT) / 1000, 0.04); lastT = ts;
 
-      // موجات
+      
       if (enemiesToSpawn <= 0 && enemiesAlive === 0) startWave(wave + 1);
       if (enemiesToSpawn > 0) {
         waveTimer -= dt;
         if (waveTimer <= 0) { spawnEnemy(); enemiesToSpawn--; waveTimer = Math.max(1.0, 3.0 - wave * 0.2); }
       }
 
-      // قوة وحماية اللاعب
+      
       if (activeShield > 0) { activeShield -= dt; pTank.userData.shield.visible = true; pTank.userData.shield.rotation.y += dt * 2; document.getElementById('icon-shield').classList.add('active'); }
       else { pTank.userData.shield.visible = false; document.getElementById('icon-shield').classList.remove('active'); }
 
       if (activeMulti > 0) { activeMulti -= dt; document.getElementById('icon-multi').classList.add('active'); }
       else { document.getElementById('icon-multi').classList.remove('active'); }
 
-      // حركة اللاعب
+      
       let mvX = 0, mvZ = 0;
       if (keys['ArrowUp'] || keys['w']) mvZ -= 1; if (keys['ArrowDown'] || keys['s']) mvZ += 1;
       if (keys['ArrowLeft'] || keys['a']) mvX -= 1; if (keys['ArrowRight'] || keys['d']) mvX += 1;
@@ -652,7 +652,7 @@
       const spd = (10 + score * 0.05) * dt;
       const nx = pTank.position.x + mvX * spd;
       const nz = pTank.position.z + mvZ * spd;
-      // التصادم مع الجدران
+      
       if (!checkWallCollision(nx, pTank.position.z, pTank.userData.radius)) pTank.position.x = nx;
       if (!checkWallCollision(pTank.position.x, nz, pTank.userData.radius)) pTank.position.z = nz;
 
@@ -665,20 +665,20 @@
       camera.position.z += (pTank.position.z + 15 - camera.position.z) * 0.1;
       camera.lookAt(pTank.position);
 
-      // تحديث الطلقات
+      
       bullets = bullets.filter(b => {
         b.position.x += b.userData.vx * dt;
         b.position.z += b.userData.vz * dt;
         b.userData.life -= dt;
         if (b.userData.life <= 0) { scene.remove(b); return false; }
 
-        // تصادم طلقة مع حاجز
+        
         if (checkWallCollision(b.position.x, b.position.z, 0.2)) {
           scene.remove(b); play(SFX.hitWall); return false;
         }
 
-        // تصادم مع الأهداف
-        if (!b.userData.isEnemy) { // طلقة لاعب تضرب الأعداء
+        
+        if (!b.userData.isEnemy) { 
           for (let i = 0; i < enemies.length; i++) {
             const en = enemies[i];
             if (Math.hypot(b.position.x - en.position.x, b.position.z - en.position.z) < en.userData.radius * 1.2) {
@@ -695,10 +695,10 @@
               scene.remove(b); return false;
             }
           }
-        } else { // طلقة عدو تضرب لاعب
+        } else { 
           if (Math.hypot(b.position.x - pTank.position.x, b.position.z - pTank.position.z) < pTank.userData.radius * 1.1) {
             scene.remove(b);
-            if (activeShield > 0) { play(SFX.hitWall); } // محمي
+            if (activeShield > 0) { play(SFX.hitWall); } 
             else {
               play(SFX.expPlayer); pHealth -= 20;
               document.getElementById('health-fill').style.width = Math.max(0, pHealth) + '%';
@@ -711,16 +711,16 @@
         return true;
       });
 
-      // تحديث الأعداء (يتجهون للاعب ويضربون)
+      
       enemies.forEach(en => {
-        // Raycasting check if clear sight to player
+        
         const distToPlayer = Math.hypot(pTank.position.x - en.position.x, pTank.position.z - en.position.z);
         const angleToPlayer = Math.atan2(pTank.position.x - en.position.x, pTank.position.z - en.position.z);
 
-        // توجيه البرج للاعب
+        
         en.rotation.y = angleToPlayer + Math.PI;
 
-        // حركة
+        
         if (distToPlayer > 10) {
           const nEx = en.position.x + Math.sin(angleToPlayer) * en.userData.spd * dt;
           const nEz = en.position.z + Math.cos(angleToPlayer) * en.userData.spd * dt;
@@ -729,14 +729,14 @@
           en.userData.wheels.forEach(w => w.rotation.x -= en.userData.spd * dt * 2);
         }
 
-        // الضرب
+        
         en.userData.fireCd -= dt;
         if (en.userData.fireCd <= 0 && distToPlayer < 30) {
-          spawnBullet(en.position, angleToPlayer, true); // زاوية للاعب بشكل مباشر
+          spawnBullet(en.position, angleToPlayer, true); 
           en.userData.fireCd = en.userData.type === 'fast' ? 1.5 : en.userData.type === 'boss' ? 0.8 : 2.5;
         }
 
-        // التصادم الوحشي (Ramming)
+        
         if (distToPlayer < en.userData.radius + pTank.userData.radius) {
           if (activeShield <= 0) { pHealth -= 0.5; document.getElementById('health-fill').style.width = Math.max(0, pHealth) + '%'; }
           if (pHealth <= 0) gameOver();
@@ -744,7 +744,7 @@
         }
       });
 
-      // تحديث الجوائز
+      
       powerups = powerups.filter(p => {
         p.rotation.y += Math.PI * dt; p.rotation.x += Math.PI / 2 * dt;
         p.position.y = 1 + Math.sin(ts / 200) * 0.2;
@@ -761,7 +761,7 @@
         return true;
       });
 
-      // تحديث الانفجارات
+      
       particles = particles.filter(p => {
         p.position.x += p.userData.vx * dt; p.position.y += p.userData.vy * dt; p.position.z += p.userData.vz * dt;
         p.userData.vy -= 30 * dt; p.userData.life -= dt;
@@ -807,6 +807,17 @@
     document.getElementById('start-btn').addEventListener('click', startGame);
     drawMinimap(); renderer.render(scene, camera);
   </script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
 </body>
+
 
 </html>

@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wolfenstein Raycasting Engine</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    color: #ccc;
+  }
+  h1 {
+    color: #e33;
+    font-size: 22px;
+    margin-bottom: 12px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+  #wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  #gamearea {
+    position: relative;
+    display: inline-block;
+  }
+  #game {
+    display: block;
+    cursor: crosshair;
+  }
+  #minimap {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    opacity: 0.9;
+  }
+  #hud {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    max-width: 640px;
+    padding: 8px 16px;
+    background: #111;
+    border-top: 1px solid #333;
+  }
+  .hud-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .hud-val {
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 2px;
+  }
+  .hud-lbl {
+    font-size: 10px;
+    color: #555;
+    letter-spacing: 1px;
+  }
+  #controls {
+    display: flex;
+    gap: 6px;
+    padding: 10px;
+    background: #0d0d0d;
+    border-top: 1px solid #222;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 640px;
+  }
+  .ctrl-btn {
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #999;
+    padding: 7px 16px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background 0.1s, color 0.1s;
+    min-width: 80px;
+    text-align: center;
+  }
+  .ctrl-btn:active, .ctrl-btn.pressed {
+    background: #333;
+    color: #fff;
+    border-color: #e33;
+  }
+  #msg {
+    color: #444;
+    font-size: 11px;
+    padding: 6px;
+    background: #0d0d0d;
+    width: 100%;
+    max-width: 640px;
+    text-align: center;
+    border-top: 1px solid #1a1a1a;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+  <a href="../index.html" style="position:fixed; top:15px; left:15px; background:rgba(255,255,255,0.1); color:white; padding:8px 15px; border-radius:50px; text-decoration:none; font-family:sans-serif; z-index:1000; font-size:12px; border:1px solid rgba(255,255,255,0.2)">🏠 الرئيسية</a>
+
+  <h1>Wolfenstein Raycasting Engine</h1>
+
+<div id="wrap">
+  <div id="gamearea">
+    <canvas id="game" width="640" height="360"></canvas>
+    <canvas id="minimap" width="120" height="120"></canvas>
+  </div>
+
+  <div id="hud">
+    <div class="hud-item">
+      <span class="hud-val" id="hp" style="color:#e33">100</span>
+      <span class="hud-lbl">HEALTH</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-val" id="ammo" style="color:#fa0">50</span>
+      <span class="hud-lbl">AMMO</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-val" id="score" style="color:#4af">0</span>
+      <span class="hud-lbl">SCORE</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-val" id="fps" style="color:#4f4">60</span>
+      <span class="hud-lbl">FPS</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-val" id="kills" style="color:#f4f">0/6</span>
+      <span class="hud-lbl">KILLS</span>
+    </div>
+  </div>
+
+  <div id="controls">
+    <button class="ctrl-btn" id="btn-up">▲ W</button>
+    <button class="ctrl-btn" id="btn-left">◄ A</button>
+    <button class="ctrl-btn" id="btn-right">D ►</button>
+    <button class="ctrl-btn" id="btn-down">▼ S</button>
+    <button class="ctrl-btn" id="btn-shoot" style="color:#fa0;border-color:#664400">SPACE — إطلاق</button>
+  </div>
+
+  <div id="msg">WASD للحركة — SPACE للإطلاق — اضغط هنا أولاً لتفعيل الكيبورد</div>
+</div>
+
+<script>
+
+
+
+
+
+const canvas = document.getElementById('game');
+const ctx    = canvas.getContext('2d');
+const mm     = document.getElementById('minimap');
+const mctx   = mm.getContext('2d');
+
+ctx.imageSmoothingEnabled = false; 
+
+
+
+
+const wallTex = new Image();
+wallTex.src = '../assets/images/wall.png';
+const spriteTex = new Image();
+spriteTex.src = '../assets/images/monsters.png';
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  
+  const now = audioCtx.currentTime;
+  if (type === 'shoot') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(150, now);
+    osc.frequency.exponentialRampToValueAtTime(10, now + 0.2);
+    gain.gain.setValueAtTime(0.5, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  } else if (type === 'hit') {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(80, now);
+    osc.frequency.exponentialRampToValueAtTime(20, now + 0.1);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  } else if (type === 'hurt') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.linearRampToValueAtTime(50, now + 0.3);
+    gain.gain.setValueAtTime(0.7, now);
+    gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+    osc.start(now);
+    osc.stop(now + 0.3);
+  }
+}
+
+const W = canvas.width;      
+const H = canvas.height;     
+const HALF_H = H / 2;
+
+
+
+
+
+const MAP = [
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
+  [1,0,2,2,0,2,0,0,0,1,0,1,1,0,0,1],
+  [1,0,2,0,0,0,0,1,0,0,0,0,1,0,0,1],
+  [1,0,0,0,3,0,0,0,0,1,0,0,0,0,0,1],
+  [1,0,2,0,0,0,1,1,0,0,0,3,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,4,0,1],
+  [1,1,1,0,1,1,0,1,1,0,1,1,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,4,0,4,0,4,0,4,0,4,0,4,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,1,0,0,3,0,3,1,0,0,1,1,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,2,0,2,0,2,1,2,0,2,0,2,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
+const MAP_H = MAP.length;
+const MAP_W = MAP[0].length;
+
+
+const WALL_COLORS = [
+  null,
+  ['#c84b2f', '#8b2c15'],  
+  ['#4b8bc8', '#2c5a8b'],  
+  ['#4bc84b', '#2c8b2c'],  
+  ['#c8c84b', '#8b8b2c'],  
+];
+
+
+
+
+const player = {
+  x: 1.5,
+  y: 1.5,
+  angle: 0,       
+  hp: 100,
+  ammo: 50,
+  score: 0,
+};
+
+
+
+
+const enemies = [
+  { x: 7.5,  y: 7.5,  hp: 3, alive: true },
+  { x: 13.5, y: 2.5,  hp: 3, alive: true },
+  { x: 2.5,  y: 13.5, hp: 3, alive: true },
+  { x: 10.5, y: 10.5, hp: 3, alive: true },
+  { x: 5.5,  y: 5.5,  hp: 2, alive: true },
+  { x: 12.5, y: 8.5,  hp: 2, alive: true },
+];
+
+
+
+
+const FOV        = Math.PI / 3;   
+const RAYS       = W;             
+const MOVE_SPEED = 0.055;
+const ROT_SPEED  = 0.048;
+
+const keys = {};
+let shootCooldown = 0;
+let flashTimer    = 0;
+let lastTime      = performance.now();
+let frameCount    = 0;
+let fpsAccum      = 0;
+let displayFPS    = 60;
+const zBuffer     = new Float32Array(RAYS); 
+
+
+
+
+
+function castRay(angle) {
+  const cosA = Math.cos(angle);
+  const sinA = Math.sin(angle);
+
+  
+  const stepX  = cosA > 0 ? 1 : -1;
+  const stepY  = sinA > 0 ? 1 : -1;
+  const deltaX = Math.abs(1 / cosA) || 1e10;
+  const deltaY = Math.abs(1 / sinA) || 1e10;
+
+  let mapX = Math.floor(player.x);
+  let mapY = Math.floor(player.y);
+
+  
+  let sideDistX = cosA > 0
+    ? (mapX + 1 - player.x) * deltaX
+    : (player.x - mapX)     * deltaX;
+  let sideDistY = sinA > 0
+    ? (mapY + 1 - player.y) * deltaY
+    : (player.y - mapY)     * deltaY;
+
+  let side = 0; 
+  let hit  = false;
+
+  for (let i = 0; i < 64; i++) {
+    if (sideDistX < sideDistY) {
+      sideDistX += deltaX;
+      mapX += stepX;
+      side = 0;
+    } else {
+      sideDistY += deltaY;
+      mapY += stepY;
+      side = 1;
+    }
+    if (mapX < 0 || mapY < 0 || mapX >= MAP_W || mapY >= MAP_H) break;
+    if (MAP[mapY][mapX] > 0) { hit = true; break; }
+  }
+
+  if (!hit) return { dist: 32, side: 0, wallType: 1 };
+
+  
+  const perpDist = side === 0
+    ? (mapX - player.x + (1 - stepX) / 2) / cosA
+    : (mapY - player.y + (1 - stepY) / 2) / sinA;
+
+  
+  let exactHit = side === 0 ? player.y + perpDist * sinA : player.x + perpDist * cosA;
+  exactHit -= Math.floor(exactHit);
+  let texX = Math.floor(exactHit * 64);
+  if ((side === 0 && cosA > 0) || (side === 1 && sinA < 0)) texX = 63 - texX;
+
+  return {
+    dist:     Math.abs(perpDist),
+    side,
+    wallType: MAP[mapY][mapX],
+    texX,
+  };
+}
+
+
+
+
+function projectEnemy(ex, ey) {
+  const dx = ex - player.x;
+  const dy = ey - player.y;
+
+  
+  let angle = Math.atan2(dy, dx) - player.angle;
+  while (angle >  Math.PI) angle -= 2 * Math.PI;
+  while (angle < -Math.PI) angle += 2 * Math.PI;
+
+  const dist    = Math.sqrt(dx * dx + dy * dy);
+  const screenX = (angle / FOV + 0.5) * W;
+  const spriteH = Math.min(H * 1.4 / dist, H * 2);
+
+  return {
+    screenX,
+    dist,
+    spriteH,
+    visible: Math.abs(angle) < FOV * 0.6 && dist > 0.25,
+  };
+}
+
+  
+function placeholderRemover() {}
+
+
+
+
+function render() {
+  
+  ctx.fillStyle = '#383838';
+  ctx.fillRect(0, 0, W, HALF_H);
+  ctx.fillStyle = '#707070';
+  ctx.fillRect(0, HALF_H, W, HALF_H);
+
+  
+  for (let x = 0; x < RAYS; x++) {
+    const rayAngle = player.angle - FOV / 2 + (x / RAYS) * FOV;
+    const { dist, side, wallType, texX } = castRay(rayAngle);
+
+    zBuffer[x] = dist;
+
+    const wallH  = Math.min(H / dist, H * 2.5);
+    const top    = HALF_H - wallH / 2;
+
+    const texID = Math.min((wallType - 1), 5); 
+    const sx = texID * 64 + texX;
+
+    if (wallTex.complete && wallTex.naturalWidth > 0) {
+      if (wallH > 0) {
+        ctx.drawImage(wallTex, sx, 0, 1, 64, x, top, 1, wallH);
+      }
+    } else {
+      ctx.fillStyle = '#aaa';
+      ctx.fillRect(x, top, 1, wallH);
+    }
+
+    
+    const distShade = Math.min(0.8, dist / 12);
+    const shade = side === 1 ? 0.3 : 0;
+    ctx.fillStyle = `rgba(0,0,0,${shade + distShade})`;
+    ctx.fillRect(x, Math.max(0, top), 1, Math.min(H, wallH));
+  }
+
+  
+  const living = enemies.filter(e => e.alive);
+  living.sort((a, b) => {
+    return ((b.x - player.x) ** 2 + (b.y - player.y) ** 2) - ((a.x - player.x) ** 2 + (a.y - player.y) ** 2);
+  });
+
+  for (const e of living) {
+    const { screenX, dist, spriteH, visible } = projectEnemy(e.x, e.y);
+    if (!dist || !visible || dist > 14) continue;
+
+    const spriteW = spriteH; 
+    const left    = screenX - spriteW / 2;
+    const top     = HALF_H - spriteH / 2;
+
+    const spriteID = e.hp >= 3 ? 0 : (e.hp >= 2 ? 1 : 2); 
+
+    const startCol = Math.max(0, Math.floor(left));
+    const endCol   = Math.min(W - 1, Math.floor(left + spriteW));
+
+    for (let sx = startCol; sx <= endCol; sx++) {
+      if (zBuffer[sx] > dist) {
+        if (spriteTex.complete && spriteTex.naturalWidth > 0) {
+          const texX = Math.floor(((sx - left) / spriteW) * 64);
+          ctx.drawImage(spriteTex, spriteID * 64 + texX, 0, 1, 64, sx, top, 1, spriteH);
+        }
+        
+        
+        const distShade = Math.min(0.5, dist / 10);
+        ctx.fillStyle = `rgba(0,0,0,${distShade})`;
+        ctx.fillRect(sx, Math.max(0, top), 1, Math.min(H, spriteH));
+      }
+    }
+
+    
+    if (e.hp < 3) {
+      ctx.fillStyle = '#600';
+      ctx.fillRect(left + spriteW * 0.25, top - 7, spriteW * 0.5, 4);
+      ctx.fillStyle = '#0c0';
+      ctx.fillRect(left + spriteW * 0.25, top - 7, (spriteW * 0.5) * (e.hp / 3), 4);
+    }
+  }
+
+  
+  if (flashTimer > 0) {
+    ctx.fillStyle = `rgba(255,200,0,${flashTimer * 0.12})`;
+    ctx.fillRect(0, 0, W, H);
+    flashTimer--;
+  }
+
+  
+  const cx = W / 2, cy = H / 2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - 12, cy); ctx.lineTo(cx - 4, cy);
+  ctx.moveTo(cx + 4,  cy); ctx.lineTo(cx + 12, cy);
+  ctx.moveTo(cx, cy - 12); ctx.lineTo(cx, cy - 4);
+  ctx.moveTo(cx, cy + 4);  ctx.lineTo(cx, cy + 12);
+  ctx.stroke();
+
+  
+  if (player.hp <= 0) {
+    ctx.fillStyle = 'rgba(160,0,0,0.75)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 52px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('YOU DIED', W / 2, H / 2 - 10);
+    ctx.font = '20px Courier New';
+    ctx.fillText('Score: ' + player.score, W / 2, H / 2 + 40);
+    ctx.font = '14px Courier New';
+    ctx.fillStyle = '#aaa';
+    ctx.fillText('أعد تحميل الصفحة للعب من جديد', W / 2, H / 2 + 75);
+  }
+
+  
+  const allDead = enemies.every(e => !e.alive);
+  if (allDead) {
+    ctx.fillStyle = 'rgba(0,100,0,0.65)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#ffe';
+    ctx.font = 'bold 48px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('YOU WIN!', W / 2, H / 2 - 10);
+    ctx.font = '20px Courier New';
+    ctx.fillText('Score: ' + player.score, W / 2, H / 2 + 40);
+  }
+}
+
+
+
+
+function renderMinimap() {
+  const cs = mm.width / MAP_W;
+
+  mctx.fillStyle = 'rgba(0,0,0,0.75)';
+  mctx.fillRect(0, 0, mm.width, mm.height);
+
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) {
+      if (MAP[y][x] > 0) {
+        const wt = Math.min(MAP[y][x], WALL_COLORS.length - 1);
+        mctx.fillStyle = WALL_COLORS[wt][0];
+      } else {
+        mctx.fillStyle = '#111';
+      }
+      mctx.fillRect(x * cs, y * cs, cs - 0.5, cs - 0.5);
+    }
+  }
+
+  
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    mctx.fillStyle = '#f44';
+    mctx.fillRect(e.x * cs - 2, e.y * cs - 2, 4, 4);
+  }
+
+  
+  mctx.fillStyle = '#4af';
+  mctx.fillRect(player.x * cs - 3, player.y * cs - 3, 6, 6);
+
+  
+  mctx.strokeStyle = '#4af';
+  mctx.lineWidth   = 1;
+  mctx.beginPath();
+  mctx.moveTo(player.x * cs, player.y * cs);
+  mctx.lineTo(
+    player.x * cs + Math.cos(player.angle) * 12,
+    player.y * cs + Math.sin(player.angle) * 12
+  );
+  mctx.stroke();
+}
+
+
+
+
+function canMove(nx, ny) {
+  const margin = 0.28;
+  
+  const points = [
+    [nx + margin, ny + margin],
+    [nx - margin, ny + margin],
+    [nx + margin, ny - margin],
+    [nx - margin, ny - margin],
+  ];
+  for (const [px, py] of points) {
+    const mx = Math.floor(px), my = Math.floor(py);
+    if (mx < 0 || my < 0 || mx >= MAP_W || my >= MAP_H) return false;
+    if (MAP[my][mx] > 0) return false;
+  }
+  return true;
+}
+
+
+
+
+function shoot() {
+  if (player.ammo <= 0 || shootCooldown > 0 || player.hp <= 0) return;
+  player.ammo--;
+  shootCooldown = 15;
+  flashTimer    = 8;
+  document.getElementById('ammo').textContent = player.ammo;
+  playSound('shoot');
+
+  const cosA = Math.cos(player.angle);
+  const sinA = Math.sin(player.angle);
+
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    const dx   = e.x - player.x;
+    const dy   = e.y - player.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 12) continue;
+
+    
+    const dot   = dx * cosA + dy * sinA;
+    if (dot < 0.4) continue;
+
+    
+    const cross = Math.abs(dx * sinA - dy * cosA);
+    if (cross / dist < 0.35) {
+      e.hp--;
+      playSound('hit');
+      if (e.hp <= 0) {
+        e.alive = false;
+        player.score += 100;
+        document.getElementById('score').textContent  = player.score;
+        document.getElementById('kills').textContent  =
+          enemies.filter(x => !x.alive).length + '/6';
+      }
+      break;
+    }
+  }
+}
+
+
+
+
+function updateEnemies(dt) {
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    const dx   = player.x - e.x;
+    const dy   = player.y - e.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    
+    if (dist < 0.4) {
+      if (player.hp > 0) {
+        const h1 = Math.floor(player.hp / 5);
+        player.hp = Math.max(0, player.hp - 0.2 * dt);
+        document.getElementById('hp').textContent = Math.ceil(player.hp);
+        const h2 = Math.floor(player.hp / 5);
+        if (h1 > h2) playSound('hurt');
+      }
+      continue;
+    }
+
+    if (dist > 6) continue;
+
+    
+    const spd = 0.009 * dt;
+    const tnx = e.x + (dx / dist) * spd;
+    const tny = e.y + (dy / dist) * spd;
+
+    
+    let blocked = false;
+    for (const o of enemies) {
+      if (o === e || !o.alive) continue;
+      const od = Math.sqrt((o.x - tnx) ** 2 + (o.y - tny) ** 2);
+      if (od < 0.5) { blocked = true; break; }
+    }
+
+    if (!blocked && canMove(tnx, tny)) {
+      e.x = tnx;
+      e.y = tny;
+    }
+  }
+}
+
+
+
+
+function gameLoop(timestamp) {
+  const dt      = Math.min((timestamp - lastTime) / 16.7, 3);
+  lastTime      = timestamp;
+
+  
+  frameCount++;
+  fpsAccum += dt * 16.7;
+  if (fpsAccum > 500) {
+    displayFPS = Math.round(frameCount * 1000 / fpsAccum);
+    document.getElementById('fps').textContent = displayFPS;
+    frameCount = 0;
+    fpsAccum   = 0;
+  }
+
+  if (player.hp > 0) {
+    
+    if (keys['ArrowLeft']  || keys['a'] || keys['A']) player.angle -= ROT_SPEED * dt;
+    if (keys['ArrowRight'] || keys['d'] || keys['D']) player.angle += ROT_SPEED * dt;
+
+    
+    let moveX = 0, moveY = 0;
+    if (keys['ArrowUp']   || keys['w'] || keys['W']) {
+      moveX += Math.cos(player.angle) * MOVE_SPEED * dt;
+      moveY += Math.sin(player.angle) * MOVE_SPEED * dt;
+    }
+    if (keys['ArrowDown'] || keys['s'] || keys['S']) {
+      moveX -= Math.cos(player.angle) * MOVE_SPEED * dt;
+      moveY -= Math.sin(player.angle) * MOVE_SPEED * dt;
+    }
+
+    
+    if (canMove(player.x + moveX, player.y)) player.x += moveX;
+    if (canMove(player.x, player.y + moveY)) player.y += moveY;
+
+    
+    if (keys[' '] || keys['Space']) {
+      shoot();
+      keys[' '] = false;
+    }
+
+    if (shootCooldown > 0) shootCooldown -= dt;
+
+    updateEnemies(dt);
+  }
+
+  render();
+  renderMinimap();
+  requestAnimationFrame(gameLoop);
+}
+
+
+
+
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    e.preventDefault();
+  }
+});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+
+
+
+const btnMap = {
+  'btn-up':    'w',
+  'btn-down':  's',
+  'btn-left':  'a',
+  'btn-right': 'd',
+  'btn-shoot': ' ',
+};
+
+for (const [id, k] of Object.entries(btnMap)) {
+  const btn = document.getElementById(id);
+  btn.addEventListener('pointerdown', e => {
+    keys[k] = true;
+    btn.classList.add('pressed');
+    if (k === ' ') shoot();
+    e.preventDefault();
+  });
+  btn.addEventListener('pointerup', e => {
+    keys[k] = false;
+    btn.classList.remove('pressed');
+    e.preventDefault();
+  });
+  btn.addEventListener('pointerleave', () => {
+    keys[k] = false;
+    btn.classList.remove('pressed');
+  });
+}
+
+
+
+
+requestAnimationFrame(gameLoop);
+</script>
+
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
+</body>
+
+</html>

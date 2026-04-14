@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+  <link rel="stylesheet" href="../assets/css/fonts-games.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🌟 Star Catcher - عالم الألعاب</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -86,7 +86,7 @@
       to   { transform: rotate(360deg) scale(1); }
     }
 
-    /* مستوى جديد */
+    
     #level-up-banner {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
       font-family: 'Fredoka One', cursive;
@@ -136,65 +136,65 @@
   </div>
 
 <script>
-// ══════════════════════════════════════════════════
-//  إعداد
-// ══════════════════════════════════════════════════
+
+
+
 const canvas = document.getElementById('canvas');
 const ctx    = canvas.getContext('2d');
 const W = canvas.width  = Math.min(window.innerWidth - 40, 580);
 const H = canvas.height = Math.min(window.innerHeight - 220, 460);
 
-// ══════════════════════════════════════════════════
-//  أصوات — تعريف مسبق (لا تتوقف إذا فشل التحميل)
-// ══════════════════════════════════════════════════
+
+
+
 function makeSound(path) {
   try {
-    const a = new Audio('../sounds/' + path);
+    const a = new Audio('../assets/sounds/' + path);
     a.preload = 'auto';
     return a;
   } catch(e) { return { play: () => {}, currentTime: 0 }; }
 }
 const SFX = {
-  catch:   makeSound('action.mp3'),    // التقاط جائزة
-  bomb:    makeSound('notify.mp3'),    // اصطدام بقنبلة
-  level:   makeSound('clear.mp3'),     // مستوى جديد
-  start:   makeSound('join.mp3'),      // بداية اللعبة
-  over:    makeSound('whistle.mp3'),   // نهاية اللعبة
+  catch:   makeSound('action.mp3'),    
+  bomb:    makeSound('notify.mp3'),    
+  level:   makeSound('clear.mp3'),     
+  start:   makeSound('join.mp3'),      
+  over:    makeSound('whistle.mp3'),   
 };
 function playSound(sfx) {
   try { sfx.currentTime = 0; sfx.play().catch(() => {}); }
   catch(e) {}
 }
 
-// ══════════════════════════════════════════════════
-//  حالة اللعبة
-// ══════════════════════════════════════════════════
+
+
+
 let score=0, best=0, lives=3, level=1;
 let running=false, animId;
 let bgStars=[], items=[], particles=[], floatTexts=[];
 let spawnTimer=0;
 
-// ── السلة (أكبر) ──
-const BASKET_W = 130;   // كانت 90
-const BASKET_H =  36;   // كانت 30
+
+const BASKET_W = 100;
+const BASKET_H = 32;
 let basketX = W / 2;
 
-// ── أنواع العناصر الساقطة ──
-// size أكبر + لا نعتمد على globalAlpha لإخفائها
+
+
 const ITEM_TYPES = [
-  { emoji:'⭐', pts: 10, bad:false, size:54 },
-  { emoji:'🌟', pts: 20, bad:false, size:58 },
-  { emoji:'💎', pts: 40, bad:false, size:50 },
-  { emoji:'🍭', pts: 15, bad:false, size:52 },
-  { emoji:'🎁', pts: 50, bad:false, size:54 },
-  { emoji:'👑', pts: 30, bad:false, size:56 },
-  { emoji:'🍬', pts: 10, bad:false, size:50 },
-  { emoji:'💣', pts: -1, bad:true,  size:52 },
+  { emoji:'⭐', pts: 10, bad:false, size:42 },
+  { emoji:'🌟', pts: 20, bad:false, size:44 },
+  { emoji:'💎', pts: 40, bad:false, size:38 },
+  { emoji:'🍭', pts: 15, bad:false, size:40 },
+  { emoji:'🎁', pts: 50, bad:false, size:42 },
+  { emoji:'👑', pts: 30, bad:false, size:42 },
+  { emoji:'🍬', pts: 10, bad:false, size:38 },
+  { emoji:'💣', pts: -1, bad:true,  size:40 },
 ];
 
-// ══════════════════════════════════════════════════
-//  مدخلات
-// ══════════════════════════════════════════════════
+
+
+
 const keys = {};
 document.addEventListener('keydown', e => {
   keys[e.key] = true;
@@ -213,7 +213,7 @@ const btnR = document.getElementById('btn-right');
   btnR.addEventListener(ev, e => { if(e.cancelable) e.preventDefault(); keys['ArrowRight'] = false; }, { passive:false });
 });
 
-// سحب إصبع على الـ Canvas
+
 let touchSX = 0;
 canvas.addEventListener('touchstart', e => { 
   touchSX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : (e.changedTouches ? e.changedTouches[0].clientX : 0); 
@@ -226,9 +226,9 @@ canvas.addEventListener('touchmove', e => {
   touchSX = clientX;
 }, { passive:false });
 
-// ══════════════════════════════════════════════════
-//  تهيئة
-// ══════════════════════════════════════════════════
+
+
+
 function init() {
   score=0; lives=3; level=1; basketX=W/2;
   items=[]; particles=[]; floatTexts=[]; spawnTimer=0;
@@ -236,7 +236,7 @@ function init() {
   document.getElementById('level').textContent = 1;
   updateLives();
 
-  // نجوم الخلفية (مرة واحدة)
+  
   if (bgStars.length === 0) {
     for (let i=0; i<90; i++) {
       bgStars.push({
@@ -254,30 +254,30 @@ function updateLives() {
   document.getElementById('lives-el').textContent = '❤️'.repeat(Math.max(0, lives));
 }
 
-// ══════════════════════════════════════════════════
-//  توليد عنصر
-// ══════════════════════════════════════════════════
+
+
+
 function spawnItem() {
-  // اختيار النوع
+  
   const pool = [];
   for (const t of ITEM_TYPES) {
     if (t.bad) {
-      if (level >= 2) { pool.push(t, t); }      // قنبلة من المستوى 2 فقط
+      if (level >= 2) { pool.push(t, t); }      
     } else {
-      pool.push(t, t, t);                        // جوائز أكثر دائماً
+      pool.push(t, t, t);                        
     }
   }
   const type  = pool[Math.floor(Math.random() * pool.length)];
   const x     = type.size/2 + 14 + Math.random() * (W - type.size - 28);
   const speed = 1.8 + level * 0.45 + Math.random() * 1.0;
 
-  // نجمة بيضاء تظهر قبل العنصر (trail)
+  
   items.push({ ...type, x, y: -type.size, speed });
 }
 
-// ══════════════════════════════════════════════════
-//  جسيمات + نصوص طائرة
-// ══════════════════════════════════════════════════
+
+
+
 function spawnParticles(x, y, color, n) {
   for (let i=0; i<n; i++) {
     const a = Math.random()*Math.PI*2, s = 2 + Math.random()*5;
@@ -289,9 +289,9 @@ function addFloatText(x, y, text) {
   floatTexts.push({ x, y, text, life:45, maxLife:45 });
 }
 
-// ══════════════════════════════════════════════════
-//  مستوى جديد
-// ══════════════════════════════════════════════════
+
+
+
 function showLevelUp() {
   const banner = document.getElementById('level-up-banner');
   banner.style.display = 'block';
@@ -299,27 +299,27 @@ function showLevelUp() {
   playSound(SFX.level);
 }
 
-// ══════════════════════════════════════════════════
-//  Update
-// ══════════════════════════════════════════════════
+
+
+
 function update(dt) {
-  // حركة السلة
+  
   const SPEED = 8 + level * 0.4;
   if (keys['ArrowLeft']  || keys['a']) basketX -= SPEED;
   if (keys['ArrowRight'] || keys['d']) basketX += SPEED;
   basketX = Math.max(BASKET_W/2, Math.min(W - BASKET_W/2, basketX));
 
-  // توليد عناصر
+  
   const interval = Math.max(0.45, 1.5 - level * 0.1);
   spawnTimer += dt;
   if (spawnTimer >= interval) { spawnTimer = 0; spawnItem(); }
 
-  // تحريك العناصر
+  
   const by = H - BASKET_H - 14;
   items.forEach(it => { it.y += it.speed; });
 
   items = items.filter(it => {
-    // ── اصطدام بالسلة ──
+    
     if (it.y + it.size/2 >= by &&
         it.y - it.size/2 <= by + BASKET_H &&
         it.x + it.size/2 >= basketX - BASKET_W/2 &&
@@ -340,7 +340,7 @@ function update(dt) {
         spawnParticles(it.x, it.y, '#ffd93d', 16);
         addFloatText(it.x, it.y, '+' + it.pts);
         playSound(SFX.catch);
-        // مستوى جديد؟
+        
         const nl = Math.floor(score / 200) + 1;
         if (nl !== level) {
           level = nl;
@@ -350,12 +350,12 @@ function update(dt) {
       }
       return false;
     }
-    // خرج من الشاشة من الأسفل
+    
     if (it.y > H + 30) return false;
     return true;
   });
 
-  // جسيمات
+  
   particles.forEach(p => {
     p.x += p.vx; p.y += p.vy;
     p.vx *= 0.90; p.vy *= 0.90;
@@ -363,21 +363,21 @@ function update(dt) {
   });
   particles = particles.filter(p => p.life > 0);
 
-  // نصوص طائرة
+  
   floatTexts.forEach(f => f.life--);
   floatTexts = floatTexts.filter(f => f.life > 0);
 }
 
-// ══════════════════════════════════════════════════
-//  Draw
-// ══════════════════════════════════════════════════
+
+
+
 function draw() {
-  // ── خلفية ──
+  
   const bg = ctx.createLinearGradient(0,0,0,H);
   bg.addColorStop(0,'#050520'); bg.addColorStop(1,'#08083a');
   ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
 
-  // ── نجوم الخلفية ──
+  
   bgStars.forEach(s => {
     s.t += 0.02;
     const op = s.op * (0.4 + 0.6 * Math.abs(Math.sin(s.t / s.tw)));
@@ -385,21 +385,21 @@ function draw() {
     ctx.fillStyle = `rgba(255,255,255,${op.toFixed(2)})`; ctx.fill();
   });
 
-  // ── خط الأرض ──
+  
   ctx.save();
   ctx.strokeStyle = 'rgba(255,215,0,0.18)'; ctx.lineWidth=2;
   ctx.setLineDash([12,8]);
   ctx.beginPath(); ctx.moveTo(0, H-BASKET_H-14); ctx.lineTo(W, H-BASKET_H-14);
   ctx.stroke(); ctx.restore();
 
-  // ── العناصر الساقطة ──
-  // نرسمها بـ globalAlpha = 1 دائماً (بدون أى شفافية)
+  
+  
   ctx.save();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   items.forEach(it => {
     const halfSize = it.size / 2 + 6;
 
-    // هالة ملونة خلف العنصر لزيادة الوضوح
+    
     const haloColor = it.bad ? 'rgba(255,50,50,0.25)' : 'rgba(255,220,60,0.20)';
     ctx.save();
     ctx.beginPath();
@@ -408,24 +408,24 @@ function draw() {
     ctx.fill();
     ctx.restore();
 
-    // ظل واضح
+    
     ctx.save();
     ctx.shadowBlur  = it.bad ? 22 : 20;
     ctx.shadowColor = it.bad ? '#ff3333' : '#ffd93d';
-    ctx.globalAlpha = 1.0;           // ← opacity كاملة دائماً
+    ctx.globalAlpha = 1.0;           
     ctx.font = it.size + 'px serif';
     ctx.fillText(it.emoji, it.x, it.y);
     ctx.restore();
   });
   ctx.restore();
 
-  // ── السلة ──
+  
   const bx = basketX, by = H - BASKET_H - 14;
   const bw = BASKET_W, bh = BASKET_H;
 
   ctx.save();
   ctx.shadowBlur = 25; ctx.shadowColor = 'rgba(255,217,61,0.7)';
-  // جسم السلة (شكل شبه منحرف)
+  
   const grad = ctx.createLinearGradient(bx - bw/2, by, bx + bw/2, by + bh);
   grad.addColorStop(0,'#ffe033'); grad.addColorStop(1,'#ff9f43');
   ctx.fillStyle = grad;
@@ -437,7 +437,7 @@ function draw() {
   ctx.closePath();
   ctx.fill();
 
-  // خطوط ديكور
+  
   ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.8;
   for (let i=1; i<=3; i++) {
     const tx = bw / 4;
@@ -447,13 +447,13 @@ function draw() {
     ctx.stroke();
   }
 
-  // إيموجي 🧺 فوق السلة (كبير وواضح)
+  
   ctx.shadowBlur = 0;
   ctx.font = '28px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText('🧺', bx, by - 22);
   ctx.restore();
 
-  // ── جسيمات ──
+  
   particles.forEach(p => {
     ctx.save();
     ctx.globalAlpha = p.life / p.maxLife;
@@ -462,7 +462,7 @@ function draw() {
     ctx.restore();
   });
 
-  // ── نصوص طائرة ──
+  
   floatTexts.forEach(f => {
     const rise = (f.maxLife - f.life) * 1.6;
     ctx.save();
@@ -476,9 +476,9 @@ function draw() {
   });
 }
 
-// ══════════════════════════════════════════════════
-//  Game Loop
-// ══════════════════════════════════════════════════
+
+
+
 let lastTS = 0;
 function loop(ts) {
   if (!running) return;
@@ -489,9 +489,9 @@ function loop(ts) {
   animId = requestAnimationFrame(loop);
 }
 
-// ══════════════════════════════════════════════════
-//  نهاية اللعبة / بداية اللعبة
-// ══════════════════════════════════════════════════
+
+
+
 function endGame() {
   running = false;
   cancelAnimationFrame(animId);
@@ -523,5 +523,16 @@ function startGame() {
 
 document.getElementById('start-btn').addEventListener('click', startGame);
 </script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
 </body>
+
 </html>

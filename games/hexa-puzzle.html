@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🏗️ بناء الأبنية - Building Puzzle</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#1a1a1a;font-family:'Tajawal',sans-serif;color:#fff;user-select:none;-webkit-user-select:none}
+#root{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column;position:relative;background:radial-gradient(circle at center,#2c2c2c 0%,#1a1a1a 100%)}
+
+
+.hud{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:rgba(0,0,0,.7);border-bottom:2px solid #ffd700;z-index:20;flex-shrink:0}
+.back{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 14px;border-radius:18px;cursor:pointer;font-size:13px;font-family:'Tajawal',sans-serif}
+.stats{display:flex;gap:12px}
+.pill{background:rgba(255,215,0,.1);border:1.5px solid rgba(255,215,0,.3);border-radius:20px;padding:4px 12px;font-size:13px;display:flex;align-items:center;gap:4px}
+.pill b{color:#ffd700}
+
+
+#board-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:15px;position:relative}
+#board-canvas{display:block;background:rgba(0,0,0,.3);border-radius:12px;box-shadow:inset 0 0 30px rgba(0,0,0,0.5)}
+
+
+.tray{display:flex;justify-content:space-around;padding:15px 10px;background:rgba(0,0,0,.5);border-top:2px solid rgba(255,215,0,.2);height:120px;flex-shrink:0}
+.piece-slot{width:100px;height:100px;background:rgba(255,255,255,.03);border-radius:15px;display:flex;align-items:center;justify-content:center;cursor:grab;transition:.2s;border:1px solid transparent;touch-action:none}
+.piece-slot.sel{background:rgba(255,215,0,.15);border-color:#ffd700;transform:scale(1.1)}
+canvas.piece-cv{display:block;pointer-events:none}
+#drag-ghost {
+    position: fixed; pointer-events: none; z-index: 1000; opacity: 0.8; display: none;
+    transform: translate(-50%, -50%);
+}
+
+
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:25px;text-align:center}
+.ov-ico{font-size:75px;animation:float 3s infinite ease-in-out}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
+.ov-title{font-size:32px;font-weight:900;color:#ffd700;margin:15px 0 10px;text-shadow:0 0 15px rgba(255,215,0,.4)}
+.ov-desc{font-size:15px;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:25px;max-width:300px}
+.ov-btn{background:linear-gradient(135deg,#ffd700,#ffaa00);border:none;color:#000;padding:15px 40px;border-radius:25px;font-size:18px;font-weight:900;cursor:pointer;box-shadow:0 6px 20px rgba(255,215,0,.3);transition:.2s}
+.ov-btn:hover{transform:scale(1.05)}
+
+
+#toast{position:fixed;top:85px;left:50%;transform:translateX(-50%);background:rgba(255,215,0,.9);color:#000;padding:8px 20px;border-radius:20px;font-size:14px;font-weight:900;z-index:50;opacity:0;transition:.3s;pointer-events:none}
+#toast.show{opacity:1;top:100px}
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="hud">
+    <button class="back" onclick="location.href='../index.html'">← رجوع</button>
+    <div class="stats">
+      <div class="pill">🏗️ <b id="lvl">1</b></div>
+      <div class="pill">⭐ <b id="score">0</b></div>
+    </div>
+  </div>
+  <div id="board-wrap"><canvas id="board-canvas"></canvas></div>
+  <div class="tray">
+    <div class="piece-slot" id="slot0" onmousedown="startDrag(event, 0)" ontouchstart="startDrag(event, 0)"><canvas class="piece-cv" id="pc0" width="80" height="80"></canvas></div>
+    <div class="piece-slot" id="slot1" onmousedown="startDrag(event, 1)" ontouchstart="startDrag(event, 1)"><canvas class="piece-cv" id="pc1" width="80" height="80"></canvas></div>
+    <div class="piece-slot" id="slot2" onmousedown="startDrag(event, 2)" ontouchstart="startDrag(event, 2)"><canvas class="piece-cv" id="pc2" width="80" height="80"></canvas></div>
+  </div>
+</div>
+
+<canvas id="drag-ghost" width="120" height="120"></canvas>
+<div id="toast"></div>
+
+<div class="ov" id="st-ov">
+  <div class="ov-ico">🏗️</div>
+  <div class="ov-title">بناء الأبنية - Buildings</div>
+  <div class="ov-desc">قم ببناء ناطحات السحاب من خلال ترتيب قوالب البناء في صفوف وأعمدة متكاملة لتشييدها!</div>
+  <button class="ov-btn" onclick="startGame()">ابدأ التشييد! 🔨</button>
+</div>
+
+<div class="ov" id="go-ov" style="display:none">
+  <div class="ov-ico">🏚️</div>
+  <div class="ov-title" style="color:#ff5555">توقف البناء!</div>
+  <div style="font-size:50px;font-weight:900;color:#ffd700;margin:10px 0" id="final-sc">0</div>
+  <p>ناطحة السحاب التي شيدتها رائعة!</p>
+  <button class="ov-btn" onclick="location.reload()">محاولة جديدة 🔄</button>
+  <button class="back" style="margin-top:10px" onclick="location.href='../index.html'">الرئيسية</button>
+</div>
+
+<script>
+
+const GRID=10;
+const COLORS=[
+  '#e67e22', 
+  '#95a5a6', 
+  '#3498db', 
+  '#f1c40f', 
+  '#e74c3c', 
+  '#2ecc71'  
+];
+const SHAPES=[
+  [[0,0],[1,0],[2,0]], 
+  [[0,0],[0,1],[0,2]], 
+  [[0,0],[1,0],[0,1],[1,1]], 
+  [[0,0],[1,0],[1,1]], 
+  [[0,0],[1,0],[0,1]], 
+  [[0,0],[1,0]], 
+  [[0,0],[0,1]], 
+  [[0,0]], 
+  [[0,0],[1,0],[2,0],[3,0]], 
+  [[0,0],[0,1],[0,2],[0,3]], 
+];
+
+
+let board=[], score=0, lvl=1, selIdx=-1, pieces=[];
+let CELL, BW, BH;
+const cv=document.getElementById('board-canvas');
+const ctx=cv.getContext('2d');
+
+function init(){
+  resize();
+  board=Array.from({length:GRID},()=>Array(GRID).fill(null));
+  pieces=[randP(),randP(),randP()];
+  score=0;drawAll();
+}
+
+function startGame(){
+  document.getElementById('st-ov').style.display='none';
+  init();
+}
+
+function randP(){
+  const s=SHAPES[Math.floor(Math.random()*SHAPES.length)];
+  const c=COLORS[Math.floor(Math.random()*COLORS.length)];
+  return {shape:s,color:c};
+}
+
+let isDragging=false, dragIdx=-1, dragX=0, dragY=0;
+const Y_OFFSET = 80; 
+let ghostCv=document.getElementById('drag-ghost');
+let ghostCtx=ghostCv.getContext('2d');
+
+function getPieceDims(p){
+    if(!p || !p.shape) return { minC:0, maxC:0, minR:0, maxR:0, w:0, h:0 };
+    const cols = p.shape.map(s => s[0]);
+    const rows = p.shape.map(s => s[1]);
+    const minC = Math.min(...cols), maxC = Math.max(...cols);
+    const minR = Math.min(...rows), maxR = Math.max(...rows);
+    return { minC, maxC, minR, maxR, w: maxC - minC, h: maxR - minR };
+}
+
+function resize(){
+  const wrap=document.getElementById('board-wrap');
+  const size=Math.min(wrap.clientWidth,wrap.clientHeight)-30;
+  BW=cv.width=size;BH=cv.height=size;
+  CELL=size/GRID;
+}
+
+
+function placeAt(c,r, pIdx){
+  if(pIdx<0||!pieces[pIdx])return;
+  const p=pieces[pIdx];
+  if(!canFeel(p,c,r)){ return; }
+  
+  p.shape.forEach(([dc,dr])=>{board[r+dr][c+dc]=p.color;});
+  score+=p.shape.length*10;
+  pieces[pIdx]=null;
+  
+  clearLines();
+  if(pieces.every(pi=>pi===null))pieces=[randP(),randP(),randP()];
+  
+  drawAll();
+  if(isDead()){
+    document.getElementById('final-sc').textContent=score;
+    document.getElementById('go-ov').style.display='flex';
+  }
+}
+
+function canFeel(p,c,r){
+  return p.shape.every(([dc,dr])=>{
+    const nc=c+dc,nr=r+dr;
+    return nc>=0&&nc<GRID&&nr>=0&&nr<GRID&&board[nr][nc]===null;
+  });
+}
+
+function clearLines(){
+  let rows=[],cols=[];
+  for(let i=0;i<GRID;i++){
+    if(board[i].every(c=>c!==null))rows.push(i);
+    let fullC=true;for(let j=0;j<GRID;j++)if(board[j][i]===null)fullC=false;
+    if(fullC)cols.push(i);
+  }
+  rows.forEach(ri=>{for(let j=0;j<GRID;j++)board[ri][j]=null;});
+  cols.forEach(ci=>{for(let j=0;j<GRID;j++)board[j][ci]=null;});
+  if(rows.length||cols.length){
+    const total=rows.length+cols.length;
+    score+=total*total*100;
+    showToast(`🏗️ تم بناء ${total} طوابق! +${total*total*100}`);
+  }
+}
+
+function isDead(){
+  return pieces.every(p=>{
+    if(!p)return false;
+    for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)if(canFeel(p,c,r))return false;
+    return true;
+  });
+}
+
+
+function startDrag(e, i){
+    if(!pieces[i]) return;
+    if(e.cancelable) e.preventDefault();
+    e.stopPropagation();
+    
+    isDragging = true;
+    dragIdx = i;
+    
+    const dims = getPieceDims(pieces[i]);
+    ghostCv.width = (dims.w + 1) * CELL;
+    ghostCv.height = (dims.h + 1) * CELL;
+    
+    updateDragPos(e);
+    ghostCv.style.display = 'block';
+    drawGhost(pieces[i], dims);
+}
+
+function updateDragPos(e){
+    if(!isDragging || !pieces[dragIdx]) return;
+    const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : (e.clientX !== undefined ? e.clientX : dragX);
+    const clientY = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : (e.clientY !== undefined ? e.clientY : dragY);
+    dragX = clientX; dragY = clientY;
+    ghostCv.style.left = dragX + 'px';
+    ghostCv.style.top = (dragY - Y_OFFSET) + 'px';
+    drawAll();
+}
+
+function endDrag(e){
+    if(!isDragging || dragIdx === -1) return;
+    
+    const p = pieces[dragIdx];
+    if(!p) {
+        isDragging = false; dragIdx = -1;
+        ghostCv.style.display = 'none';
+        drawAll(); return;
+    }
+
+    const rect = cv.getBoundingClientRect();
+    const dims = getPieceDims(p);
+    const dropX = dragX - rect.left;
+    const dropY = (dragY - Y_OFFSET) - rect.bottom + 120; 
+
+    const cw = rect.width / GRID;
+    const ch = rect.height / GRID;
+    const c = Math.round(dropX / cw - (dims.w+1)/2);
+    
+    const relativeY = (dragY - Y_OFFSET) - rect.top;
+    const r = Math.round(relativeY / ch - (dims.h+1)/2);
+    
+    if(c >= -2 && c < GRID && r >= -2 && r < GRID) {
+        placeAt(c, r, dragIdx);
+    }
+    
+    isDragging = false;
+    dragIdx = -1;
+    ghostCv.style.display = 'none';
+    drawAll();
+}
+
+window.addEventListener('mousemove', e => { if(isDragging) updateDragPos(e); });
+window.addEventListener('touchmove', e => { if(isDragging) { if(e.cancelable) e.preventDefault(); updateDragPos(e); } }, {passive:false});
+window.addEventListener('mouseup', endDrag);
+window.addEventListener('touchend', endDrag);
+window.addEventListener('touchcancel', endDrag);
+
+function drawGhost(p, dims){
+    ghostCtx.clearRect(0,0,ghostCv.width, ghostCv.height);
+    p.shape.forEach(([dc,dr]) => {
+        drawBrick(ghostCtx, (dc - dims.minC) * CELL, (dr - dims.minR) * CELL, CELL, p.color);
+    });
+}
+
+
+function drawAll(){
+  ctx.clearRect(0,0,BW,BH);
+  
+  ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
+  for(let i=1;i<GRID;i++){
+    ctx.beginPath();ctx.moveTo(i*CELL,0);ctx.lineTo(i*CELL,BH);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,i*CELL);ctx.lineTo(BW,i*CELL);ctx.stroke();
+  }
+  
+  
+  if(isDragging && pieces[dragIdx]) {
+      const rect = cv.getBoundingClientRect();
+      const p = pieces[dragIdx];
+      const dims = getPieceDims(p);
+      const dropX = dragX - rect.left;
+      const dropY = (dragY - Y_OFFSET) - rect.top;
+      
+      const c = Math.round(dropX / (rect.width / GRID) - (dims.w+1)/2);
+      const r = Math.round(dropY / (rect.height / GRID) - (dims.h+1)/2);
+
+      if(c >= -5 && r >= -5 && c < GRID && r < GRID) {
+          const valid = canFeel(p, c, r);
+          ctx.fillStyle = valid ? 'rgba(255,215,0,0.3)' : 'rgba(255,0,0,0.3)';
+          p.shape.forEach(([dc,dr]) => {
+              if(c+dc >= 0 && c+dc < GRID && r+dr >= 0 && r+dr < GRID)
+                ctx.fillRect((c+dc)*CELL, (r+dr)*CELL, CELL, CELL);
+          });
+      }
+  }
+
+  
+  for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++){
+    if(board[r][c])drawBrick(ctx,c*CELL,r*CELL,CELL,board[r][c]);
+  }
+  
+  
+  [0,1,2].forEach(i=>{
+    const tc=document.getElementById('pc'+i);
+    const tctx=tc.getContext('2d');
+    tctx.clearRect(0,0,80,80);
+    const p=pieces[i];
+    if(p && dragIdx !== i){
+      const minC=Math.min(...p.shape.map(s=>s[0])),maxC=Math.max(...p.shape.map(s=>s[0]));
+      const minR=Math.min(...p.shape.map(s=>s[1])),maxR=Math.max(...p.shape.map(s=>s[1]));
+      const sc=15,ox=(80-(maxC-minC+1)*sc)/2,oy=(80-(maxR-minR+1)*sc)/2;
+      p.shape.forEach(([dc,dr])=>drawBrick(tctx,ox+(dc-minC)*sc,oy+(dr-minR)*sc,sc,p.color));
+    }
+  });
+  
+  updateHUD();
+}
+
+function drawBrick(c,x,y,s,color){
+  c.fillStyle=color;c.fillRect(x+1,y+1,s-2,s-2);
+  c.fillStyle='rgba(255,255,255,0.2)';c.fillRect(x+2,y+2,s-4,s/3);
+  c.strokeStyle='rgba(0,0,0,0.3)';c.lineWidth=1.5;c.strokeRect(x+1,y+1,s-2,s-2);
+}
+
+function updateHUD(){document.getElementById('score').textContent=score;}
+
+
+cv.addEventListener('click',e=>{
+  const rect=cv.getBoundingClientRect();
+  const c=Math.floor((e.clientX-rect.left)/CELL),r=Math.floor((e.clientY-rect.top)/CELL);
+  placeAt(c,r);
+});
+cv.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const rect=cv.getBoundingClientRect();
+  const c=Math.floor((e.touches[0].clientX-rect.left)/CELL),r=Math.floor((e.touches[0].clientY-rect.top)/CELL);
+  placeAt(c,r);
+},{passive:false});
+
+function showToast(m){
+  const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+resize();
+</script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
+</body>
+
+</html>

@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+  <link rel="stylesheet" href="../assets/css/fonts-games.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🚀 Space Shooter - عالم الألعاب</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Tajawal:wght@700;900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -104,8 +103,8 @@ const ctx = canvas.getContext('2d');
 const W = canvas.width  = Math.min(window.innerWidth - 40, 700);
 const H = canvas.height = Math.min(window.innerHeight - 120, 550);
 
-// ── أصوات ──
-function snd(f) { try { const a=new Audio('../sounds/'+f); a.preload='auto'; return a; } catch(e){ return {play:()=>{},currentTime:0}; } }
+
+function snd(f) { try { const a=new Audio('../assets/sounds/'+f); a.preload='auto'; return a; } catch(e){ return {play:()=>{},currentTime:0}; } }
 const SFX = {
   shoot:    snd('mixkit-retro-video-game-bubble-laser-277.wav'),
   explode:  snd('mixkit-game-blood-pop-slide-2363.wav'),
@@ -124,7 +123,7 @@ let shootInterval, levelInterval;
 let enemySpeed = 1.5;
 let spawnRate = 1500;
 
-// Create background stars
+
 for(let i=0;i<80;i++){
   stars.push({ x:Math.random()*W, y:Math.random()*H, r:Math.random()*2, spd:0.3+Math.random()*0.7 });
 }
@@ -174,26 +173,26 @@ function spawnParticles(x, y, color, n=12) {
 }
 
 function update() {
-  // Move ship
+  
   ship.x += (mouseX - ship.x) * 0.12;
   ship.x = Math.max(ship.w/2, Math.min(W-ship.w/2, ship.x));
 
-  // Bullets
+  
   bullets = bullets.filter(b => b.y > -20);
   bullets.forEach(b => b.y -= b.spd);
 
-  // Enemies
+  
   enemies = enemies.filter(e => e.y < H+60);
   enemies.forEach(e => { e.y += e.speed; e.x += Math.sin(e.y/40)*0.8; });
 
-  // Stars
+  
   stars.forEach(s => { s.y+=s.spd; if(s.y>H) s.y=0; });
 
-  // Particles
+  
   particles.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.life--; p.vx*=0.92; p.vy*=0.92; });
   particles = particles.filter(p => p.life>0);
 
-  // Bullet-enemy collision
+  
   bullets.forEach(b => {
     enemies.forEach(e => {
       const dx = b.x - e.x, dy = b.y - e.y;
@@ -212,7 +211,7 @@ function update() {
     });
   });
 
-  // Enemy-ship collision
+  
   enemies.forEach(e => {
     const dx = e.x - ship.x, dy = e.y - ship.y;
     if (Math.abs(dx) < 30 && Math.abs(dy) < 30) {
@@ -247,14 +246,14 @@ function updateLives() {
 function draw() {
   ctx.clearRect(0,0,W,H);
 
-  // Sky gradient
+  
   const grad = ctx.createLinearGradient(0,0,0,H);
   grad.addColorStop(0,'#000814');
   grad.addColorStop(1,'#001233');
   ctx.fillStyle = grad;
   ctx.fillRect(0,0,W,H);
 
-  // Stars background
+  
   stars.forEach(s => {
     ctx.beginPath();
     ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
@@ -262,7 +261,7 @@ function draw() {
     ctx.fill();
   });
 
-  // Bullets
+  
   bullets.forEach(b => {
     const g = ctx.createLinearGradient(b.x,b.y+b.h,b.x,b.y);
     g.addColorStop(0,'#4d96ff');
@@ -276,11 +275,11 @@ function draw() {
     ctx.restore();
   });
 
-  // Enemies
+  
   enemies.forEach(e => {
     ctx.font = e.size+'px serif';
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    // HP bar
+    
     if(e.hp<e.maxHp) {
       ctx.fillStyle='#ff0000';
       ctx.fillRect(e.x-20, e.y-e.size/2-10, 40, 5);
@@ -290,7 +289,7 @@ function draw() {
     ctx.fillText(e.emoji, e.x, e.y);
   });
 
-  // Particles
+  
   particles.forEach(p => {
     ctx.save();
     ctx.globalAlpha = p.life/60;
@@ -301,7 +300,7 @@ function draw() {
     ctx.restore();
   });
 
-  // Ship
+  
   ctx.save();
   if (ship._hit>0) {
     ctx.globalAlpha = ship._hit%4<2 ? 0.4 : 1;
@@ -365,5 +364,16 @@ function gameOver() {
   });
 }
 </script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
 </body>
+
 </html>

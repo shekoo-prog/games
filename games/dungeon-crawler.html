@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🗡️ صائد الوحوش - Monster Slasher</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#05000a;font-family:'Tajawal',sans-serif;color:#fff;user-select:none;-webkit-user-select:none}
+#root{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column;position:relative}
+
+
+.hud{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(0,0,0,.7);border-bottom:1px solid rgba(255,100,0,.2);z-index:10;flex-shrink:0}
+.back{background:rgba(255,100,0,.15);border:1px solid rgba(255,100,0,.3);color:#fff;padding:6px 14px;border-radius:18px;cursor:pointer;font-size:13px;font-family:'Tajawal',sans-serif}
+.stats{display:flex;gap:10px}
+.stat-box{background:rgba(255,255,255,.08);border-radius:12px;padding:4px 10px;font-size:13px;display:flex;align-items:center;gap:4px}
+.stat-box b{color:#ffd700}
+
+
+.hp-cont{position:absolute;top:70px;left:50%;transform:translateX(-50%);width:140px;height:10px;background:rgba(255,0,0,.2);border:1.5px solid rgba(255,50,50,.4);border-radius:10px;overflow:hidden;z-index:10}
+.hp-fill{height:100%;background:linear-gradient(90deg,#ff4444,#ff8888);width:100%;transition:width .3s}
+
+
+#cv{display:block;flex:1;background:radial-gradient(circle at center,#1a042d 0%,#05000a 100%);touch-action:none}
+
+
+.ctrl-area{position:absolute;bottom:20px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;pointer-events:none;z-index:20}
+.joystick-zone{width:120px;height:120px;background:rgba(255,255,255,.05);border-radius:50%;border:2px solid rgba(255,255,255,.1);pointer-events:auto;position:relative;display:flex;align-items:center;justify-content:center}
+.joy-knob{width:50px;height:50px;background:rgba(255,140,0,.4);border:2px solid #ff8c00;border-radius:50%;box-shadow:0 0 15px rgba(255,140,0,.4)}
+.atk-btn{width:80px;height:80px;background:rgba(255,50,0,.2);border:3px solid #ff4400;border-radius:50%;pointer-events:auto;display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 0 20px rgba(255,50,0,.3);transition:.1s}
+.atk-btn:active{transform:scale(.85);background:rgba(255,50,0,.5)}
+
+
+.ov{position:fixed;inset:0;background:rgba(0,0,10,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:20px;text-align:center}
+.ov-ico{font-size:70px;animation:float 2s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
+.ov-title{font-size:28px;font-weight:900;color:#ff8c00;margin:12px 0 8px;text-shadow:0 0 15px #ff8c00}
+.ov-desc{font-size:15px;color:rgba(255,255,255,.6);margin-bottom:20px;line-height:1.6}
+.instr{background:rgba(255,140,0,.08);padding:15px;border-radius:16px;border:1px solid rgba(255,140,0,.2);margin-bottom:20px;width:100%;max-width:300px}
+.instr p{font-size:14px;margin:5px 0}
+.ov-btn{background:linear-gradient(135deg,#ff8c00,#ff4400);border:none;color:#fff;padding:14px 35px;border-radius:24px;font-size:18px;font-weight:900;cursor:pointer;box-shadow:0 6px 20px rgba(255,100,0,.4);transition:.2s}
+.ov-btn:hover{transform:scale(1.05)}
+
+
+.dmg-pop{position:fixed;font-size:20px;font-weight:900;color:#ff4444;text-shadow:0 0 10px #ff4444;pointer-events:none;animation:pop-up-fade .8s forwards}
+@keyframes pop-up-fade{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-50px)}}
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="hud">
+    <button class="back" onclick="location.href='../index.html'">← رجوع</button>
+    <div class="stats">
+      <div class="stat-box">💰 <b id="gold">0</b></div>
+      <div class="stat-box">💀 <b id="kills">0</b></div>
+    </div>
+  </div>
+  <div class="hp-cont"><div class="hp-fill" id="hp"></div></div>
+  <canvas id="cv"></canvas>
+  <div class="ctrl-area">
+    <div class="joystick-zone" id="joy-zone"><div class="joy-knob" id="joy-knob"></div></div>
+    <button class="atk-btn" id="atk-btn">⚔️</button>
+  </div>
+</div>
+
+<div class="ov" id="start-ov">
+  <div class="ov-ico">🧛</div>
+  <div class="ov-title">صائد الوحوش</div>
+  <div class="ov-desc">مستكشف الزنزانة بشكل جديد وممتع!<br>تحرك واضرب الوحوش قبل أن تهزمك.</div>
+  <div class="instr">
+    <p>🕹️ استعمل الدائرة اليسرى للتحرك</p>
+    <p>⚔️ اضغط الزر الأيمن للهجوم</p>
+    <p>💎 اجمع الجواهر لزيادة نقاطك</p>
+  </div>
+  <button class="ov-btn" onclick="startGame()">ابدأ الصيد! 🗡️</button>
+</div>
+
+<div class="ov" id="end-ov" style="display:none">
+  <div class="ov-ico">☠️</div>
+  <div class="ov-title" style="color:#ff4444;text-shadow:0 0 15px #ff4444">انتهت الرحلة</div>
+  <div style="font-size:48px;font-weight:900;color:#ffd700;margin:10px 0" id="final-sc">0</div>
+  <div style="font-size:14px;color:rgba(255,255,255,.5);margin-bottom:10px">وحوش مهزومة: <b id="final-k">0</b></div>
+  <button class="ov-btn" onclick="startGame()">حاول مجدداً 🔄</button>
+  <button class="back" style="margin-top:10px" onclick="location.href='../index.html'">الرئيسية</button>
+</div>
+
+<script src="../js/core/game-core.js"></script>
+<script>
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+let W,H;
+
+
+let running=false,frame=0,kills=0,gold=0;
+let player={x:0,y:0,hp:100,max:100,r:20,atkT:0,dir:{x:0,y:0}};
+let enemies=[],gems=[],particles=[];
+let joy={active:false,x:0,y:0,dx:0,dy:0};
+
+function resize(){
+  const r=cv.getBoundingClientRect();
+  W=cv.width=r.width||window.innerWidth;
+  H=cv.height=r.height||window.innerHeight-100;
+  if(H<200)H=cv.height=400;
+  player.x=W/2;player.y=H/2;
+}
+
+function startGame(){
+  document.getElementById('start-ov').style.display='none';
+  document.getElementById('end-ov').style.display='none';
+  kills=0;gold=0;frame=0;
+  player.hp=100;player.atkT=0;player.x=W/2;player.y=H/2;
+  enemies=[];gems=[];particles=[];
+  updateHUD();running=true;loop();
+}
+
+
+const jzone=document.getElementById('joy-zone'),jknob=document.getElementById('joy-knob');
+const abtn=document.getElementById('atk-btn');
+
+function handleJoy(ex,ey){
+  const r=jzone.getBoundingClientRect();
+  const ox=ex-r.left-r.width/2,oy=ey-r.top-r.height/2;
+  const d=Math.sqrt(ox*ox+oy*oy);const max=r.width/2;
+  if(d>0){
+    const nx=ox/d,ny=oy/d;
+    const dist=Math.min(d,max);
+    jknob.style.transform=`translate(${nx*dist}px,${ny*dist}px)`;
+    player.dir={x:nx*(dist/max),y:ny*(dist/max)};
+  }
+}
+jzone.addEventListener('touchstart',e=>{joy.active=true;handleJoy(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+jzone.addEventListener('touchmove',e=>{if(joy.active){handleJoy(e.touches[0].clientX,e.touches[0].clientY);}},{passive:false});
+jzone.addEventListener('touchend',()=>{joy.active=false;jknob.style.transform='translate(0,0)';player.dir={x:0,y:0};});
+
+abtn.addEventListener('touchstart',e=>{e.preventDefault();attack();},{passive:false});
+abtn.addEventListener('click',attack);
+
+function attack(){
+  if(!running||player.atkT>0)return;
+  player.atkT=15; 
+  
+  enemies.forEach(en=>{
+    const dx=en.x-player.x,dy=en.y-player.y,dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<70){
+      en.hp-=40;en.vx=dx/dist*10;en.vy=dy/dist*10;
+      spawnParticles(en.x,en.y,'#ff4400',5);
+    }
+  });
+}
+
+
+function update(){
+  frame++;
+  
+  player.x+=player.dir.x*4.5;player.y+=player.dir.y*4.5;
+  player.x=Math.max(20,Math.min(W-20,player.x));
+  player.y=Math.max(20,Math.min(H-20,player.y));
+  if(player.atkT>0)player.atkT--;
+
+  
+  if(frame%Math.max(30,120-kills*2)===0&&enemies.length<15){
+    const side=Math.random()*4;let ex,ey;
+    if(side<1){ex=Math.random()*W;ey=-30;}
+    else if(side<2){ex=Math.random()*W;ey=H+30;}
+    else if(side<3){ex=-30;ey=Math.random()*H;}
+    else{ex=W+30;ey=Math.random()*H;}
+    enemies.push({x:ex,y:ey,hp:100,r:18,vx:0,vy:0,t:Math.random()*Math.PI*2});
+  }
+
+  
+  enemies.forEach(en=>{
+    const dx=player.x-en.x,dy=player.y-en.y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d>0){en.vx+=dx/d*.15;en.vy+=dy/d*.15;}
+    en.vx*=0.94;en.vy*=0.94;en.x+=en.vx;en.y+=en.vy;
+    en.t+=0.1;
+    
+    if(d<40){
+      player.hp-=0.4;
+      if(frame%20===0)spawnParticles(player.x,player.y,'#ff0000',3);
+    }
+  });
+  const oldLen=enemies.length;
+  enemies=enemies.filter(en=>{
+    if(en.hp<=0){
+      kills++;gold+=10;
+      gems.push({x:en.x,y:en.y,v:10});
+      spawnParticles(en.x,en.y,'#ffd700',10);
+      GameCore.addCoins(2); 
+      return false;
+    }
+    return true;
+  });
+  if(enemies.length<oldLen)updateHUD();
+
+  
+  gems=gems.filter(g=>{
+    const d=Math.sqrt((g.x-player.x)**2+(g.y-player.y)**2);
+    if(d<40){gold+=g.v;updateHUD();return false;}
+    return true;
+  });
+
+  
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=.03;});
+  particles=particles.filter(p=>p.life>0);
+
+  if(player.hp<=0){
+    running=false;
+    
+    
+    GameCore.updateBest('dungeon-crawler', gold);
+    
+    
+    const d = GameCore.state.dailyChallenge;
+    if (d.game === 'dungeon-crawler' && gold >= d.goal && !d.completed) {
+      d.completed = true;
+      GameCore.addCoins(50);
+      GameCore.showPopup('🏆 اكتمل تحدي اليوم! +50', '#ffd700');
+      GameCore.save();
+    }
+
+    
+    if (gold > 100) GameCore.addCoins(Math.floor(gold/20));
+
+    document.getElementById('final-sc').textContent=gold;
+    document.getElementById('final-k').textContent=kills;
+    setTimeout(()=>document.getElementById('end-ov').style.display='flex',800);
+  }
+}
+
+function updateHUD(){
+  document.getElementById('gold').textContent=gold;
+  document.getElementById('kills').textContent=kills;
+  document.getElementById('hp').style.width=player.hp+'%';
+}
+
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  
+  ctx.strokeStyle='rgba(255,255,255,.03)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40)for(let y=0;y<H;y+=40)ctx.strokeRect(x,y,40,40);
+
+  
+  gems.forEach(g=>{
+    ctx.shadowColor='#ffd700';ctx.shadowBlur=10;ctx.fillStyle='#ffd700';
+    ctx.beginPath();ctx.arc(g.x,g.y,5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  });
+
+  
+  enemies.forEach(en=>{
+    ctx.save();ctx.translate(en.x,en.y);
+    const bob=Math.sin(en.t)*3;
+    ctx.font='32px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('🧟',0,bob);
+    
+    ctx.fillStyle='rgba(255,0,0,.3)';ctx.fillRect(-15,-25,30,4);
+    ctx.fillStyle='#ff4444';ctx.fillRect(-15,-25,30*(en.hp/100),4);
+    ctx.restore();
+  });
+
+  
+  ctx.save();ctx.translate(player.x,player.y);
+  if(player.atkT>0){
+    ctx.strokeStyle='rgba(255,100,0,'+(player.atkT/15)+')';ctx.lineWidth=5;
+    ctx.beginPath();ctx.arc(0,0,70,0,Math.PI*2);ctx.stroke();
+  }
+  ctx.font='44px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('🧙',0,0);
+  ctx.restore();
+
+  
+  particles.forEach(p=>{
+    ctx.globalAlpha=p.life;ctx.fillStyle=p.color;
+    ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();
+  });ctx.globalAlpha=1;
+}
+
+function spawnParticles(x,y,color,n){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2,s=1+Math.random()*4;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,color});
+  }
+}
+
+function loop(){if(running){update();draw();requestAnimationFrame(loop);}}
+window.addEventListener('resize',resize);
+resize();
+</script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
+</body>
+
+</html>

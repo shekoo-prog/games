@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engine Demo - Antigravity</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; background: #000510; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        canvas { background: radial-gradient(circle, #001233 0%, #000814 100%); border-radius: 20px; box-shadow: 0 0 50px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.05); }
+        #back-btn { position: fixed; top: 20px; right: 20px; color: white; text-decoration: none; font-family: 'Outfit'; background: rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 50px; z-index: 3000; }
+    </style>
+</head>
+<body>
+    <a href="../index.html" id="back-btn">← Back to Hub</a>
+    <canvas id="gameCanvas"></canvas>
+
+    
+    <script src="../js/core/core/engine.js"></script>
+    <script src="../js/core/core/engine-ui.js"></script>
+    <script src="../js/core/core/game-core.js"></script>
+
+    <script>
+        
+        const engine = GameCore.setupEngine('gameCanvas', { width: 800, height: 600 });
+        
+        
+        const ui = new EngineUI(engine, {
+            title: 'NEON WAVE',
+            icon: '⚡',
+            instructions: 'MOVE: Mouse / Touch<br>CLICK: Shoot!<br>Survive the neon enemies.'
+        });
+
+        
+        let score = 0, level = 1, lives = 3;
+        let enemies = [], bullets = [];
+
+        
+        class Player extends GameEntity {
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.shadowBlur = 15; ctx.shadowColor = '#00f2ff';
+                ctx.fillStyle = '#00f2ff';
+                ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(15, 15); ctx.lineTo(-15, 15); ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+            update(dt) {
+                this.x += (engine.input.x - this.x) * 0.15;
+                this.y += (engine.input.y - this.y) * 0.15;
+            }
+        }
+
+        class Enemy extends GameEntity {
+            constructor(engine) {
+                super(engine, Math.random() * 800, -50, 30, 30);
+                this.speed = 100 + (level * 20);
+                this.color = `hsl(${Math.random() * 360}, 80%, 60%)`;
+            }
+            update(dt) {
+                this.y += this.speed * dt;
+                if (this.y > 650) this.active = false;
+            }
+            draw(ctx) {
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10; ctx.shadowColor = this.color;
+                ctx.fillRect(this.x - 15, this.y - 15, 30, 30);
+            }
+        }
+
+        const player = new Player(engine, 400, 500, 30, 30);
+        engine.entities.push(player);
+
+        
+        let spawnTimer = 0;
+        engine.onUpdate = (dt) => {
+            if (lives <= 0) return;
+
+            
+            spawnTimer -= dt;
+            if (spawnTimer <= 0) {
+                engine.entities.push(new Enemy(engine));
+                spawnTimer = Math.max(0.2, 1.0 - (level * 0.1));
+            }
+
+            
+            if (engine.input.isDown && engine.lastShot !== Math.floor(performance.now()/150)) {
+                engine.lastShot = Math.floor(performance.now()/150);
+                const b = { x: player.x, y: player.y, active: true, update: function(dt){ this.y -= 500*dt; if(this.y < -20) this.active=false; }, draw: function(ctx){ ctx.fillStyle='#fff'; ctx.fillRect(this.x-2, this.y-10, 4, 20); } };
+                engine.entities.push(b);
+            }
+
+            
+            engine.entities.forEach(ent => {
+                if (ent instanceof Enemy) {
+                    
+                    if (engine.rectIntersect(ent.x-15, ent.y-15, 30, 30, player.x-15, player.y-15, 30, 30)) {
+                        ent.active = false;
+                        lives--;
+                        engine.shake(20, 0.3);
+                        engine.spawnExplosion(player.x, player.y, '#ff4757', 20);
+                        ui.updateHUD({ score, level, lives });
+                        if (lives <= 0) {
+                            engine.isRunning = false;
+                            ui.showGameOver(score, level);
+                        }
+                    }
+                    
+                    engine.entities.forEach(b => {
+                        if (b.y && !b.update.name && engine.rectIntersect(ent.x-15, ent.y-15, 30, 30, b.x-2, b.y-10, 4, 20)) {
+                            ent.active = false;
+                            b.active = false;
+                            score += 10;
+                            if (score % 200 === 0) level++;
+                            engine.spawnExplosion(ent.x, ent.y, ent.color, 10);
+                            ui.updateHUD({ score, level, lives });
+                        }
+                    });
+                }
+            });
+        };
+
+        engine.onDraw = (ctx) => {
+            
+            ctx.fillStyle = 'rgba(255,255,255,0.02)';
+            for(let i=0; i<10; i++) ctx.fillRect(Math.random()*800, Math.random()*600, 2, 2);
+        };
+
+    </script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
+</body>
+
+</html>

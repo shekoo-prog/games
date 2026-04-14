@@ -1,138 +1,299 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🎮 عالم الألعاب للأطفال</title>
-  <meta name="description" content="9 ألعاب ممتعة وتفاعلية للأطفال - العاب 2D و 3D رائعة">
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="images/icon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Fredoka+One&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎮 عالم الألعاب - Games World</title>
+    <style>
+        :root {
+            --primary: #00f2ff;
+            --accent: #ff0055;
+            --bg: #050510;
+            --card-glass: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(0, 242, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(255, 0, 85, 0.05) 0%, transparent 40%);
+            color: #fff;
+            font-family: 'Cairo', sans-serif;
+            min-height: 100vh;
+            padding: 40px 20px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1.1rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .game-card {
+            background: var(--card-glass);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 24px 16px;
+            text-decoration: none;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            transition: 0.5s;
+        }
+
+        .game-card:hover::before {
+            left: 100%;
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(0, 242, 255, 0.2);
+        }
+
+        .card-icon {
+            font-size: 3.5rem;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));
+            transition: transform 0.3s;
+        }
+
+        .game-card:hover .card-icon {
+            transform: scale(1.2) rotate(5deg);
+        }
+
+        .card-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .card-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: var(--accent);
+            color: #fff;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 480px) {
+            .main-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+            .header h1 { font-size: 2.2rem; }
+            .card-icon { font-size: 2.8rem; }
+        }
+    </style>
 </head>
 <body>
-  <div class="stars" id="stars"></div>
-  <div class="floating-shapes" id="shapes"></div>
 
-  <header class="hero">
-    <div class="hero-content">
-      <div class="logo-emoji">🎮</div>
-      <h1 class="hero-title">عالم الألعاب</h1>
-      <p class="hero-subtitle">9 ألعاب مذهلة تنتظرك! 🌟</p>
-    </div>
-    <div class="hero-characters">
-      <span class="char c1">🚀</span>
-      <span class="char c2">🐸</span>
-      <span class="char c3">🎯</span>
-      <span class="char c4">🌀</span>
-      <span class="char c5">🎨</span>
-    </div>
-  </header>
+    <header class="header">
+        <h1>🎮 عالم الألعاب</h1>
+        <p>مرحباً بك في بوابتك لعالم من المتعة اللانهائية</p>
+    </header>
 
-  <main class="games-grid">
-    <a href="games/space-shooter.html" class="game-card card-1">
-      <div class="card-glow"></div>
-      <div class="card-icon">🚀</div>
-      <div class="card-badge">2D</div>
-      <h2 class="card-title">Space Shooter</h2>
-      <p class="card-desc">قاتل الأعداء في الفضاء!</p>
-      <div class="card-stars">⭐⭐⭐</div>
-      <div class="card-btn">العب الآن →</div>
-    </a>
+    <main class="main-grid">
+        
+        <a href="games/bowling-3d.html" class="game-card" style="border-color: #00f2ff;">
+            <div class="card-icon">🎳</div>
+            <div class="card-title">احتراف البولينج</div>
+            <span class="card-badge">جديد🔥</span>
+        </a>
 
-    <a href="games/color-blast.html" class="game-card card-2">
-      <div class="card-glow"></div>
-      <div class="card-icon">🎨</div>
-      <div class="card-badge">2D</div>
-      <h2 class="card-title">Color Blast</h2>
-      <p class="card-desc">لوّن واجمع النقاط!</p>
-      <div class="card-stars">⭐⭐⭐</div>
-      <div class="card-btn">العب الآن →</div>
-    </a>
+        
+        <a href="games/archery-master.html" class="game-card" style="border-color: #ff0055;">
+            <div class="card-icon">🏹</div>
+            <div class="card-title">سيد الرماية</div>
+            <span class="card-badge">جديد🔥</span>
+        </a>
 
-    <a href="games/froggy-jump.html" class="game-card card-3">
-      <div class="card-glow"></div>
-      <div class="card-icon">🌟</div>
-      <div class="card-badge">2D</div>
-      <h2 class="card-title">Star Catcher</h2>
-      <p class="card-desc">التقط النجوم والجوائز!</p>
-      <div class="card-stars">⭐⭐⭐</div>
-      <div class="card-btn">العب الآن →</div>
-    </a>
+        <a href="games/word-connect.html" class="game-card">
+            <div class="card-icon">🔤</div>
+            <div class="card-title">توصيل الكلمات</div>
+        </a>
 
-    <a href="games/car-run.html" class="game-card card-4">
-      <div class="card-glow"></div>
-      <div class="card-icon">🏎️</div>
-      <div class="card-badge 3d-badge">3D</div>
-      <h2 class="card-title">سباق السيارات</h2>
-      <p class="card-desc">تفادى العقبات 3D</p>
-      <div class="card-stars">⭐⭐⭐</div>
-      <div class="card-btn">العب الآن →</div>
-    </a>
+        <a href="games/math-quest.html" class="game-card">
+            <div class="card-icon">🗡️</div>
+            <div class="card-title">مغامرة الأرقام</div>
+        </a>
 
-    <a href="games/balloon-pop.html" class="game-card card-5">
-      <div class="card-glow"></div>
-      <div class="card-icon">🎈</div>
-      <div class="card-badge">2D</div>
-      <h2 class="card-title">Balloon Pop</h2>
-      <p class="card-desc">فرقع البالونات بسرعة!</p>
-      <div class="card-stars">⭐⭐⭐</div>
-      <div class="card-btn">العب الآن →</div>
-    </a>
+        <a href="games/memory-match.html" class="game-card">
+            <div class="card-icon">🐾</div>
+            <div class="card-title">ذاكرة الحيوانات</div>
+        </a>
 
-    <a href="games/gold-miner.html" class="game-card card-6">
-      <div class="card-glow"></div>
-      <div class="card-icon">⛏️</div>
-      <div class="card-badge">2D</div>
-      <h2 class="card-title">صائد الذهب</h2>
-      <p class="card-desc">اسحب الذهب والمجوهرات!</p>
-      <div class="card-stars">⭐⭐⭐</div>
-      <div class="card-btn">العب الآن →</div>
-    </a>
+        <a href="games/neon-runner.html" class="game-card">
+            <div class="card-icon">⚡</div>
+            <div class="card-title">الهروب النيوني</div>
+        </a>
 
-    <a href="games/fish-catch.html" class="game-card card-7">
-      <div class="card-glow"></div>
-      <div class="card-icon">🎣</div>
-      <div class="card-badge">2D</div>
-      <h2 class="card-title">صائد الأسماك</h2>
-      <p class="card-desc">اصطد السمك، احذر القرش!</p>
-      <div class="card-stars">⭐⭐⭐</div>
-      <div class="card-btn">العب الآن →</div>
-    </a>
+        <a href="games/hexa-puzzle.html" class="game-card">
+            <div class="card-icon">🏗️</div>
+            <div class="card-title">بناء الأبنية</div>
+        </a>
 
-    <a href="games/color-tanks.html" class="game-card card-8">
-      <div class="card-glow"></div>
-      <div class="card-icon">🎮</div>
-      <div class="card-badge badge-3d">3D</div>
-      <h2 class="card-title">حرب الدبابات</h2>
-      <p class="card-desc">ساحة قتال دبابات مشوقة!</p>
-      <div class="card-stars">⭐⭐⭐</div>
-      <div class="card-btn">العب الآن →</div>
-    </a>
+        <a href="games/dungeon-crawler.html" class="game-card">
+            <div class="card-icon">🧛</div>
+            <div class="card-title">صائد الوحوش</div>
+        </a>
 
-    <a href="games/coloring-letters.html" class="game-card card-9">
-      <div class="card-glow"></div>
-      <div class="card-icon">🖍️</div>
-      <div class="card-badge">2D</div>
-      <h2 class="card-title">لوّن وتعلم</h2>
-      <p class="card-desc">تلوين الحروف والأرقام!</p>
-      <div class="card-stars">⭐⭐⭐</div>
-      <div class="card-btn">العب الآن →</div>
-    </a>
-  </main>
+        <a href="games/color-maze.html" class="game-card">
+            <div class="card-icon">🌈</div>
+            <div class="card-title">متاهة الألوان</div>
+        </a>
 
-  <footer class="footer">
-    <p>🌟 العب • تعلم • استمتع 🌟</p>
-  </footer>
+        <a href="games/car-run.html" class="game-card">
+            <div class="card-icon">🏎️</div>
+            <div class="card-title">سباق السيارات</div>
+        </a>
 
-  <script src="js/main.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js')
-        .then(() => console.log('Service Worker Registered'))
-        .catch(err => console.error('Service Worker Registration Failed', err));
-    }
-  </script>
+        <a href="games/color-tanks.html" class="game-card">
+            <div class="card-icon">🎮</div>
+            <div class="card-title">حرب الدبابات</div>
+        </a>
+
+        <a href="games/gold-miner.html" class="game-card">
+            <div class="card-icon">⛏️</div>
+            <div class="card-title">صائد الذهب</div>
+        </a>
+
+        <a href="games/fish-catch.html" class="game-card">
+            <div class="card-icon">🎣</div>
+            <div class="card-title">صائد الأسماك</div>
+        </a>
+
+        <a href="games/balloon-pop.html" class="game-card">
+            <div class="card-icon">🎈</div>
+            <div class="card-title">Balloon Pop</div>
+        </a>
+
+        <a href="games/color-blast.html" class="game-card">
+            <div class="card-icon">🎨</div>
+            <div class="card-title">Color Blast</div>
+        </a>
+
+        <a href="games/froggy-jump.html" class="game-card">
+            <div class="card-icon">🌟</div>
+            <div class="card-title">صائد النجوم</div>
+        </a>
+
+        <a href="games/space-shooter.html" class="game-card">
+            <div class="card-icon">🚀</div>
+            <div class="card-title">Space Shooter</div>
+        </a>
+
+        <a href="games/monster-hunt-3d.html" class="game-card" style="border-color: #e33;">
+            <div class="card-icon">🧛</div>
+            <div class="card-title">صيد الوحوش 3D</div>
+        </a>
+
+        <a href="games/neo-2048.html" class="game-card" style="border-color: var(--primary);">
+            <div class="card-icon">🧩</div>
+            <div class="card-title">NEO 2048</div>
+        </a>
+
+        <a href="games/coloring-letters.html" class="game-card">
+            <div class="card-icon">🖍️</div>
+            <div class="card-title">لوّن وتعلم</div>
+        </a>
+
+        <a href="games/knife-hit.html" class="game-card" style="border-color: var(--accent);">
+            <div class="card-icon" style="color:#00e5ff">🗡️</div>
+            <div class="card-title">نيون خنجر</div>
+            <span class="card-badge">جديد🔥</span>
+        </a>
+
+        <a href="games/super-platformer.html" class="game-card" style="border-color: #f7c948;">
+            <div class="card-icon">🍄</div>
+            <div class="card-title">سوبر بلاتفورمر</div>
+            <span class="card-badge">جديد🔥</span>
+        </a>
+
+        <a href="games/neo-snake.html" class="game-card" style="border-color: #00ffaa;">
+            <div class="card-icon">🐍</div>
+            <div class="card-title">نيو سنيك</div>
+            <span class="card-badge">جديد🔥</span>
+        </a>
+
+        <a href="games/basketball-physics.html" class="game-card" style="border-color: #ff9800;">
+            <div class="card-icon">🏀</div>
+            <div class="card-title">كرة السلة</div>
+            <span class="card-badge">جديد🔥</span>
+        </a>
+
+        <a href="games/penalty-shootout.html" class="game-card" style="border-color: #4caf50;">
+            <div class="card-icon">⚽</div>
+            <div class="card-title">ضربات جزاء</div>
+            <span class="card-badge">جديد🔥</span>
+        </a>
+    </main>
+
 </body>
 </html>

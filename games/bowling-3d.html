@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>البولينج المحترف - Pro Bowling</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #020205; font-family: 'Cairo', sans-serif; touch-action: none; user-select: none; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        
+        .game-header {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .back-circle {
+            width: 48px; height: 48px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; text-decoration: none;
+            font-size: 20px; transition: 0.3s;
+            pointer-events: auto;
+        }
+        .back-circle:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.1); }
+
+        .score-box {
+            position: absolute;
+            left: 50%; top: 20px;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        .score-val {
+            font-size: 52px; font-weight: 900; color: #00f2ff;
+            line-height: 1; text-shadow: 0 0 20px rgba(0, 242, 255, 0.6);
+        }
+        .score-lab { font-size: 14px; color: rgba(255,255,255,0.7); font-weight: 700; margin-top: -5px; }
+
+        #msg { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 70px; font-weight: 900; text-shadow: 0 0 40px rgba(0,242,255,1); pointer-events: none; opacity: 0; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #instruct { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.4); text-align: center; font-size: 16px; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div class="game-header">
+        <div style="width:50px"></div>
+        <div class="score-box">
+            <div class="score-val" id="score">0</div>
+            <div class="score-lab">النقاط</div>
+        </div>
+        <a href="../index.html" class="back-circle">🏠</a>
+    </div>
+    <div id="msg">STRIKE!</div>
+    <div id="instruct">اسحب الكرة للخلف للتصويب 🎳</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        let score = 0;
+        let pins = [];
+        let ball = { x: 0, y: 0, vx: 0, vy: 0, r: 25, active: false, shot: false };
+        let isDragging = false;
+        let startX, startY;
+
+        function reset() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            ball.x = width / 2;
+            ball.y = height - 100;
+            ball.vx = 0; ball.vy = 0;
+            ball.active = false; ball.shot = false;
+            setupPins();
+        }
+
+        function setupPins() {
+            pins = [];
+            const rows = 4;
+            const spacing = 45;
+            const startY = 150;
+            for(let i=0; i<rows; i++) {
+                for(let j=0; j<=i; j++) {
+                    pins.push({
+                        x: width/2 + (j - i/2) * spacing,
+                        y: startY + i * 35,
+                        r: 15,
+                        active: true,
+                        vx: 0, vy: 0,
+                        rot: 0
+                    });
+                }
+            }
+        }
+
+        window.addEventListener('resize', reset);
+        reset();
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSfx(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            if (type === 'hit') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            } else {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            }
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        }
+
+        canvas.addEventListener('pointerdown', e => {
+            if (ball.shot) return;
+            isDragging = true;
+            startX = e.clientX; startY = e.clientY;
+            document.getElementById('instruct').style.opacity = 0;
+        });
+
+        canvas.addEventListener('pointermove', e => {
+            if (isDragging) {
+                ball.vx = (startX - e.clientX) * 0.15;
+                ball.vy = (startY - e.clientY) * 0.2;
+            }
+        });
+
+        canvas.addEventListener('pointerup', e => {
+            if (!isDragging) return;
+            isDragging = false;
+            if (ball.vy < -5) {
+                ball.shot = true;
+                ball.active = true;
+                playSfx('shoot');
+            } else {
+                ball.vx = 0; ball.vy = 0;
+            }
+        });
+
+        function showMsg(t) {
+            const m = document.getElementById('msg');
+            m.innerText = t; m.style.opacity = 1; m.style.transform = "translate(-50%, -50%) scale(1.2)";
+            setTimeout(() => { m.style.opacity = 0; m.style.transform = "translate(-50%, -50%) scale(1)"; }, 1500);
+        }
+
+        function update() {
+            if (ball.active) {
+                ball.x += ball.vx;
+                ball.y += ball.vy;
+                ball.vx *= 0.99;
+                ball.vy *= 0.99;
+
+                if (ball.x < 50 || ball.x > width-50) ball.vx *= -0.5;
+
+                pins.forEach(p => {
+                    if (p.active) {
+                        let dx = ball.x - p.x;
+                        let dy = ball.y - p.y;
+                        let dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < ball.r + p.r) {
+                            p.active = false;
+                            p.vx = (p.x - ball.x) * 0.2;
+                            p.vy = (p.y - ball.y) * 0.2;
+                            score += 10;
+                            document.getElementById('score').innerText = score;
+                            playSfx('hit');
+                            if (pins.filter(pin => pin.active).length === 0) showMsg("STRIKE!");
+                        }
+                    } else {
+                        p.x += p.vx; p.y += p.vy;
+                        p.vx *= 0.95; p.vy *= 0.95;
+                        p.rot += 0.1;
+                    }
+                });
+
+                if (ball.y < -100 || Math.abs(ball.vy) < 0.2) {
+                    ball.active = false;
+                    setTimeout(reset, 1500);
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0,0,width,height);
+            
+            // Lane
+            ctx.fillStyle = '#111';
+            ctx.beginPath();
+            ctx.moveTo(50, height); ctx.lineTo(150, 0); 
+            ctx.lineTo(width-150, 0); ctx.lineTo(width-50, height);
+            ctx.fill();
+            
+            // Trajectory
+            if(isDragging && ball.vy < -5) {
+                ctx.beginPath(); ctx.setLineDash([5,5]); ctx.strokeStyle='rgba(0,242,255,0.3)';
+                ctx.moveTo(ball.x, ball.y); ctx.lineTo(ball.x + ball.vx*20, ball.y + ball.vy*20);
+                ctx.stroke(); ctx.setLineDash([]);
+            }
+
+            // Pins
+            pins.forEach(p => {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rot);
+                ctx.fillStyle = p.active ? '#fff' : 'rgba(255,255,255,0.3)';
+                ctx.beginPath(); ctx.ellipse(0, 0, p.r*0.6, p.r, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#f00'; ctx.fillRect(-p.r*0.5, -p.r*0.3, p.r, p.r*0.2);
+                ctx.restore();
+            });
+
+            // Ball
+            ctx.fillStyle = '#ff0055';
+            ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath(); ctx.arc(ball.x-5, ball.y-5, 5, 0, Math.PI*2); ctx.arc(ball.x+5, ball.y-5, 5, 0, Math.PI*2); ctx.arc(ball.x, ball.y+2, 5, 0, Math.PI*2); ctx.fill();
+
+            update();
+            requestAnimationFrame(draw);
+        }
+        draw();
+    </script>
+</body>
+</html>

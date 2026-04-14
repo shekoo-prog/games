@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>كرة السلة - Basketball Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #050510; font-family: 'Cairo', sans-serif; touch-action: none; user-select: none; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        
+        .game-header {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .back-circle {
+            width: 48px; height: 48px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; text-decoration: none;
+            font-size: 20px; transition: 0.3s;
+            pointer-events: auto;
+        }
+        .back-circle:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.1); }
+
+        .score-box {
+            position: absolute;
+            left: 50%; top: 20px;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        .score-val {
+            font-size: 52px; font-weight: 900; color: #ff9800;
+            line-height: 1; text-shadow: 0 0 20px rgba(255, 152, 0, 0.6);
+        }
+        .score-lab { font-size: 14px; color: rgba(255,255,255,0.7); font-weight: 700; margin-top: -5px; }
+
+        #msg { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); color: #ff9800; font-size: 60px; font-weight: 900; text-shadow: 0 0 30px rgba(255, 152, 0, 0.5); pointer-events: none; opacity: 0; transition: 0.3s; }
+        #instructions { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); color: rgba(255, 255, 255, 0.5); text-align: center; font-size: 18px; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div class="game-header">
+        <div style="width:50px"></div>
+        <div class="score-box">
+            <div class="score-val" id="score">0</div>
+            <div class="score-lab">النقاط</div>
+        </div>
+        <a href="../index.html" class="back-circle">🏠</a>
+    </div>
+
+    <div id="instructions">اسحب الكرة للخلف للتصويب 🏀</div>
+    <div id="msg">هدف!</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        let score = 0;
+        let ball = { x: 0, y: 0, vx: 0, vy: 0, r: 25, active: false, shot: false };
+        let hoop = { x: 0, y: 0, w: 100 };
+
+        function resetBall() {
+            ball.x = width * 0.2; ball.y = height * 0.7;
+            ball.vx = 0; ball.vy = 0; ball.active = false; ball.shot = false;
+            hoop.x = width * 0.8; hoop.y = height * 0.35;
+        }
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            resetBall();
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        let isDragging = false, startX, startY;
+        canvas.addEventListener('pointerdown', e => {
+            if(ball.shot) return;
+            isDragging = true; startX = e.clientX; startY = e.clientY;
+            document.getElementById('instructions').style.opacity = 0;
+        });
+
+        canvas.addEventListener('pointermove', e => {
+            if(isDragging) {
+                ball.vx = (startX - e.clientX) * 0.15;
+                ball.vy = (startY - e.clientY) * 0.15;
+            }
+        });
+
+        canvas.addEventListener('pointerup', e => {
+            if(!isDragging) return;
+            isDragging = false;
+            if(Math.abs(ball.vy) > 2) {
+                ball.shot = true; ball.active = true;
+            }
+        });
+
+        function showMsg(t) {
+            const m = document.getElementById('msg');
+            m.innerText = t; m.style.opacity = 1;
+            setTimeout(() => m.style.opacity = 0, 1500);
+        }
+
+        function update() {
+            if(ball.active) {
+                ball.vy += 0.5;
+                ball.x += ball.vx; ball.y += ball.vy;
+                
+                if(ball.x > hoop.x - 50 && ball.x < hoop.x + 50 && ball.y > hoop.y && ball.vy > 0 && ball.y < hoop.y + 20) {
+                    score++; document.getElementById('score').innerText = score;
+                    showMsg("هدف رائع!"); ball.active = false;
+                    setTimeout(resetBall, 1000);
+                }
+                
+                if(ball.y > height || ball.x > width) {
+                    ball.active = false; setTimeout(resetBall, 1000);
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#050510'; ctx.fillRect(0,0,width,height);
+            
+            // Hoop
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 10;
+            ctx.strokeRect(hoop.x + 50, hoop.y - 100, 10, 200);
+            ctx.strokeStyle = '#f44336'; ctx.lineWidth = 5;
+            ctx.strokeRect(hoop.x - 50, hoop.y, 100, 10);
+
+            // Ball
+            ctx.fillStyle = '#ff9800'; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+
+            update();
+            requestAnimationFrame(draw);
+        }
+        draw();
+    </script>
+</body>
+</html>

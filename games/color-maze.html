@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🌈 متاهة الألوان المتدفقة - Color Flow Maze</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#050010;font-family:'Tajawal',sans-serif;color:#fff;user-select:none;-webkit-user-select:none}
+#root{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column;position:relative}
+
+
+.hud{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(0,0,0,.6);border-bottom:1px solid rgba(123,47,255,.25);z-index:20;flex-shrink:0}
+.back{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 14px;border-radius:18px;cursor:pointer;font-size:13px;font-family:'Tajawal',sans-serif;transition:.2s}
+.back:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4)}
+.level-info{text-align:center}
+.lvl-lbl{font-size:10px;color:rgba(255,255,255,.4);margin-bottom:2px}
+.lvl-val{font-size:18px;font-weight:900;color:#7b2fff;text-shadow:0 0 10px #7b2fff}
+
+
+.target-box{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.1)}
+.target-circle{width:22px;height:22px;border-radius:50%;box-shadow:0 0 12px currentColor}
+.target-txt{font-size:13px;font-weight:700}
+
+
+#cv{display:block;flex:1;touch-action:none;cursor:none}
+
+
+.ctrl{display:flex;justify-content:center;padding:15px;background:rgba(0,0,0,.6);border-top:1px solid rgba(255,255,255,.05);z-index:20;flex-shrink:0}
+.dpad{display:grid;grid-template-columns:repeat(3,65px);grid-template-rows:repeat(2,65px);gap:8px}
+.dp-btn{background:rgba(123,47,255,.12);border:2px solid rgba(123,47,255,.3);color:#7b2fff;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;transition:.1s;-webkit-tap-highlight-color:transparent}
+.dp-btn:active{background:rgba(123,47,255,.35);transform:scale(.92);box-shadow:0 0 15px rgba(123,47,255,.4)}
+
+
+.ov{position:fixed;inset:0;background:rgba(0,0,15,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:25px;text-align:center}
+.ov-ico{font-size:80px;animation:float 2s infinite ease-in-out}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
+.ov-title{font-size:32px;font-weight:900;color:#fff;margin:15px 0 8px;text-shadow:0 0 20px rgba(123,47,255,.6)}
+.ov-desc{font-size:16px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:25px;max-width:300px}
+.ov-btn{background:linear-gradient(135deg,#7b2fff,#4f46e5);border:none;color:#fff;padding:15px 40px;border-radius:25px;font-size:18px;font-weight:900;cursor:pointer;box-shadow:0 8px 25px rgba(123,47,255,.4);transition:.2s}
+.ov-btn:hover{transform:scale(1.05)}
+
+
+.shake{animation:shake-frame .3s ease-in-out}
+@keyframes shake-frame{0%,100%{transform:translateX(0)}30%{transform:translateX(-5px)}70%{transform:translateX(5px)}}
+
+
+.p-pop{position:fixed;pointer-events:none;font-size:20px;font-weight:900;animation:pop-fade 1s forwards}
+@keyframes pop-fade{0%{opacity:1;transform:scale(1.5)}100%{opacity:0;transform:scale(.5) translateY(-50px)}}
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="hud">
+    <button class="back" onclick="location.href='../index.html'">← رجوع</button>
+    <div class="level-info">
+      <div class="lvl-lbl">المستوى</div>
+      <div class="lvl-val" id="lv-num">1</div>
+    </div>
+    <div class="target-box">
+      <div class="target-circle" id="tg-circle"></div>
+      <div class="target-txt" id="tg-txt">...</div>
+    </div>
+  </div>
+  <canvas id="cv"></canvas>
+  <div class="ctrl">
+    <div class="dpad">
+      <button class="dp-btn" id="b-up">▲</button>
+      <button class="dp-btn" id="b-down">▼</button>
+      <button class="dp-btn" id="b-left">◀</button>
+      <button class="dp-btn" id="b-right">▶</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="st-ov">
+  <div class="ov-ico">🔮</div>
+  <div class="ov-title">متاهة الألوان المتدفقة</div>
+  <div class="ov-desc">تحكم بالكرة ووجهها نحو الهدف المطابق للونها.<br>تجنب الاصطدام بالجدران المظلمة!</div>
+  <button class="ov-btn" onclick="startLevel()">ابدأ الرحلة 🌈</button>
+</div>
+
+<div class="ov" id="win-ov" style="display:none">
+  <div class="ov-ico">✨</div>
+  <div class="ov-title" style="color:#00ff88">مذهل! تم الوصول</div>
+  <div class="ov-desc">لقد عبرت المتاهة بمهارة.<br>استعد للتحدي القادم.</div>
+  <button class="ov-btn" onclick="nextLv()">المستوى التالي ⬆️</button>
+</div>
+
+<script>
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+let W,H,CELL;
+
+
+const COLORS=[
+  {name:'أحمر',hex:'#ff3366',rgb:[255,51,102]},
+  {name:'أزرق',hex:'#00d4ff',rgb:[0,212,255]},
+  {name:'أخضر',hex:'#00ff88',rgb:[0,255,136]},
+  {name:'ذهبي',hex:'#ffd700',rgb:[255,215,0]},
+  {name:'أرجواني',hex:'#7b2fff',rgb:[123,47,255]}
+];
+
+
+let maze=[],lvl=1,running=false;
+let player={x:0,y:0,vx:0,vy:0,r:0,trail:[],color:null};
+let goal={x:0,y:0,color:null};
+let particles=[];
+
+function resize(){
+  const r=cv.getBoundingClientRect();
+  W=cv.width=r.width;H=cv.height=r.height;
+  CELL=Math.floor(Math.min(W/10,H/14));
+}
+
+function startLevel(){
+  document.getElementById('st-ov').style.display='none';
+  document.getElementById('win-ov').style.display='none';
+  initMaze();
+  running=true;loop();
+}
+
+function initMaze(){
+  
+  const rows=Math.floor(H/CELL)-1,cols=Math.floor(W/CELL)-1;
+  maze=Array.from({length:rows},()=>Array(cols).fill(1)); 
+  
+  
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      if(Math.random()<0.22)maze[r][c]=0; 
+    }
+  }
+  
+  maze[1][1]=1;maze[rows-2][cols-2]=1;
+  
+  for(let r=1;r<rows-1;r++)maze[r][1]=1;
+  for(let c=1;c<cols-1;c++)maze[rows-Math.floor(rows/2)][c]=1;
+  for(let r=1;r<rows-1;r++)maze[r][cols-2]=1;
+
+  player.r=CELL*.3;player.x=CELL*1.5;player.y=CELL*1.5;
+  player.vx=0;player.vy=0;player.trail=[];
+  const ci=Math.floor(Math.random()*COLORS.length);
+  player.color=COLORS[ci];
+  goal.x=(cols-1.5)*CELL;goal.y=(rows-1.5)*CELL;goal.color=COLORS[ci];
+
+  document.getElementById('tg-circle').style.backgroundColor=player.color.hex;
+  document.getElementById('tg-circle').style.color=player.color.hex;
+  document.getElementById('tg-txt').textContent=player.color.name;
+  document.getElementById('lv-num').textContent=lvl;
+}
+
+
+const keys={};
+window.addEventListener('keydown',e=>keys[e.key]=true);
+window.addEventListener('keyup',e=>keys[e.key]=false);
+
+['up','down','left','right'].forEach(dir=>{
+  const b=document.getElementById('b-'+dir);
+  b.onpointerdown=(e)=>{e.preventDefault();keys[dir]=true;};
+  b.onpointerup=(e)=>{e.preventDefault();keys[dir]=false;};
+  b.onpointerleave=()=>keys[dir]=false;
+});
+
+
+function update(){
+  if(!running)return;
+  const acc=0.8,fric=0.88;
+  if(keys['ArrowUp']||keys['up']||keys['w'])player.vy-=acc;
+  if(keys['ArrowDown']||keys['down']||keys['s'])player.vy+=acc;
+  if(keys['ArrowLeft']||keys['left']||keys['a'])player.vx-=acc;
+  if(keys['ArrowRight']||keys['right']||keys['d'])player.vx+=acc;
+
+  player.vx*=fric;player.vy*=fric;
+  
+  
+  const nx=player.x+player.vx,ny=player.y+player.vy;
+  const r=player.r;const cr=Math.floor(ny/CELL),cc=Math.floor(nx/CELL);
+  
+  if(cr>=0&&cr<maze.length&&cc>=0&&cc<maze[0].length&&maze[cr][cc]===0){
+    player.vx*=-0.5;player.vy*=-0.5;
+    if(Math.abs(player.vx)>1)shakeCanvas();
+  } else {
+    player.x=nx;player.y=ny;
+  }
+  
+  
+  player.x=Math.max(r,Math.min(W-r,player.x));
+  player.y=Math.max(r,Math.min(H-r,player.y));
+
+  
+  player.trail.unshift({x:player.x,y:player.y});
+  if(player.trail.length>12)player.trail.pop();
+
+  
+  const dist=Math.sqrt((player.x-goal.x)**2+(player.y-goal.y)**2);
+  if(dist<CELL*0.6){
+    running=false;
+    document.getElementById('win-ov').style.display='flex';
+  }
+}
+
+function nextLv(){
+  lvl++;startLevel();
+}
+
+function shakeCanvas(){
+  document.getElementById('root').classList.add('shake');
+  setTimeout(()=>document.getElementById('root').classList.remove('shake'),300);
+}
+
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const rows=maze.length,cols=maze[0].length;
+  
+  
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const x=c*CELL,y=r*CELL;
+      if(maze[r][c]===0){
+        ctx.fillStyle='#110022';ctx.fillRect(x+2,y+2,CELL-4,CELL-4);
+        ctx.strokeStyle='rgba(123,47,255,.3)';ctx.lineWidth=1;
+        ctx.strokeRect(x+5,y+5,CELL-10,CELL-10);
+      } else {
+        ctx.strokeStyle='rgba(255,255,255,.02)';ctx.strokeRect(x,y,CELL,CELL);
+      }
+    }
+  }
+
+  
+  ctx.save();ctx.translate(goal.x,goal.y);
+  ctx.shadowColor=goal.color.hex;ctx.shadowBlur=20;
+  ctx.fillStyle=goal.color.hex+'33';ctx.beginPath();ctx.arc(0,0,CELL*.45,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle=goal.color.hex;ctx.lineWidth=3;ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='16px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('✨',0,0);ctx.restore();
+
+  
+  player.trail.forEach((t,i)=>{
+    ctx.globalAlpha=(1-i/12)*.4;ctx.fillStyle=player.color.hex;
+    ctx.beginPath();ctx.arc(t.x,t.y,player.r*(1-i/15),0,Math.PI*2);ctx.fill();
+  });ctx.globalAlpha=1;
+
+  
+  ctx.save();ctx.translate(player.x,player.y);
+  ctx.shadowColor=player.color.hex;ctx.shadowBlur=15;
+  const pg=ctx.createRadialGradient(-3,-3,1,0,0,player.r);
+  pg.addColorStop(0,'#fff');pg.addColorStop(.6,player.color.hex);pg.addColorStop(1,player.color.hex+'88');
+  ctx.fillStyle=pg;ctx.beginPath();ctx.arc(0,0,player.r,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=2;ctx.stroke();ctx.restore();
+}
+
+function loop(){if(running){update();draw();requestAnimationFrame(loop);}}
+window.addEventListener('resize',resize);
+resize();
+</script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
+</body>
+
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ضربات الجزاء - Pro Penalty</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #1b5e20; font-family: 'Cairo', sans-serif; touch-action: none; user-select: none; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        
+        .game-header {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .back-circle {
+            width: 48px; height: 48px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; text-decoration: none;
+            font-size: 20px; transition: 0.3s;
+            pointer-events: auto;
+        }
+        .back-circle:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.1); }
+
+        .score-box {
+            position: absolute;
+            left: 50%; top: 20px;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        .score-val {
+            font-size: 52px; font-weight: 900; color: #4caf50;
+            line-height: 1; text-shadow: 0 0 20px rgba(76, 175, 80, 0.6);
+        }
+        .score-lab { font-size: 14px; color: rgba(255,255,255,0.7); font-weight: 700; margin-top: -5px; }
+        .secondary-stats { margin-top: 5px; color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 700; }
+
+        #msg { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 50px; font-weight: 900; text-shadow: 0 5px 15px rgba(0,0,0,0.5); pointer-events: none; opacity: 0; transition: all 0.3s; text-align: center; }
+        #instructions { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); color: rgba(255, 255, 255, 0.5); text-align: center; font-size: 18px; pointer-events: none; }
+        #mode-toggle { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.3); border: 1px solid #fff; color: #fff; padding: 8px 25px; border-radius: 30px; cursor: pointer; pointer-events: auto; }
+    </style>
+</head>
+<body>
+    <div class="game-header">
+        <div style="width:50px"></div>
+        <div class="score-box">
+            <div class="score-val" id="score">0</div>
+            <div class="score-lab">الأهداف</div>
+            <div class="secondary-stats">الصدات: <span id="misses">0</span></div>
+        </div>
+        <a href="../index.html" class="back-circle">🏠</a>
+    </div>
+
+    <div id="instructions">اسحب الكرة للأمام للتسديد ⚽</div>
+    <div id="msg">هدف!</div>
+    <button id="mode-toggle">عدد الحراس: 1</button>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        let score = 0, misses = 0;
+        let particles = [];
+        let ball = { x: 0, y: 0, radius: 25, z: 1, vx: 0, vy: 0, vz: 0, active: false };
+        let goal = { width: 0, height: 0, y: 0 };
+        let keeperCount = 1, keepers = [];
+
+        function createKeepers() {
+            keepers = [];
+            const colors = ['#ffeb3b', '#03a9f4', '#f44336', '#9c27b0'];
+            for (let i = 0; i < keeperCount; i++) {
+                keepers.push({
+                    x: width / 2, y: goal.y + goal.height - 10,
+                    width: 80, height: 120, diving: false, diveDir: 0, diveProgress: 0,
+                    color: colors[i] || '#fff', offset: (i * Math.PI * 2) / keeperCount
+                });
+            }
+        }
+
+        function resetPositions() {
+            goal.width = width * 0.6; goal.height = height * 0.25; goal.y = height * 0.18;
+            ball.x = width / 2; ball.y = height * 0.85; ball.z = 1;
+            createKeepers();
+        }
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            resetPositions();
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        document.getElementById('mode-toggle').onclick = (e) => {
+            keeperCount = (keeperCount % 4) + 1;
+            e.target.innerText = "عدد الحراس: " + keeperCount;
+            resetRound();
+        };
+
+        let isDragging = false, dragStartX, dragStartY;
+        canvas.addEventListener('pointerdown', (e) => {
+            if (ball.active) return;
+            isDragging = true; dragStartX = e.clientX; dragStartY = e.clientY;
+            document.getElementById('instructions').style.opacity = '0';
+        });
+
+        canvas.addEventListener('pointerup', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            let dx = e.clientX - dragStartX, dy = e.clientY - dragStartY;
+            if (dy < -20) {
+                ball.vx = dx * 0.08; ball.vy = dy * 0.1; ball.vz = -0.015; ball.active = true;
+                setTimeout(() => { keepers.forEach(k => { k.diving = true; k.diveDir = ball.vx > 1.5 ? 1 : (ball.vx < -1.5 ? -1 : (Math.random() > 0.5 ? 1 : -1)); }); }, 50);
+            }
+        });
+
+        function showMessage(txt, color = "#fff") {
+            const m = document.getElementById('msg');
+            m.innerText = txt; m.style.color = color; m.style.opacity = 1;
+            setTimeout(() => m.style.opacity = 0, 1200);
+        }
+
+        function resetRound() {
+            ball.active = false; ball.z = 1; ball.x = width / 2; ball.y = height * 0.85;
+            createKeepers();
+        }
+
+        function update() {
+            if (ball.active) {
+                ball.x += ball.vx; ball.y += ball.vy; ball.z += ball.vz * (1 + (1-ball.z));
+                if (ball.z <= 0.5) {
+                    ball.active = false;
+                    let inGoal = ball.x > (width-goal.width)/2 && ball.x < (width+goal.width)/2 && ball.y > goal.y && ball.y < goal.y + goal.height;
+                    let saved = keepers.some(k => Math.abs(ball.x - k.x) < k.width * 0.8 && ball.y < k.y + 50 && ball.y > k.y - 120);
+                    if (saved) { misses++; showMessage("صدة رائعة!", "#ff9800"); }
+                    else if (inGoal) { score++; showMessage("هدف!!!", "#4caf50"); }
+                    else { misses++; showMessage("بره!", "#f44336"); }
+                    document.getElementById('score').innerText = score;
+                    document.getElementById('misses').innerText = misses;
+                    setTimeout(resetRound, 1500);
+                }
+            }
+            keepers.forEach(k => { if (k.diving) { k.diveProgress += 0.06; if (k.diveProgress < 1.5) k.x += k.diveDir * 16; } else k.x = width/2 + Math.sin(Date.now() * 0.003 + k.offset) * 55; });
+        }
+
+        function draw() {
+            ctx.fillStyle = '#1b5e20'; ctx.fillRect(0,0,width,height);
+            // Goal draw logic simplified
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 8;
+            ctx.strokeRect((width-goal.width)/2, goal.y, goal.width, goal.height);
+            
+            keepers.forEach(k => {
+                ctx.fillStyle = k.color;
+                ctx.fillRect(k.x - 20, k.y - 100, 40, 100);
+                ctx.fillStyle = '#ffcc80'; ctx.beginPath(); ctx.arc(k.x, k.y-110, 15, 0, Math.PI*2); ctx.fill();
+            });
+
+            ctx.save();
+            ctx.translate(ball.x, ball.y); ctx.scale(ball.z, ball.z);
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, ball.radius, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+
+            update();
+            requestAnimationFrame(draw);
+        }
+        draw();
+    </script>
+</body>
+</html>

@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO 2048 - Antigravity</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a12;
+            --grid: #1a1a2e;
+            --tile: #16213e;
+            --neon: #00f2ff;
+        }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Outfit', 'Tajawal', sans-serif; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+        
+        #game-container { position: relative; width: 380px; max-width: 95vw; }
+        
+        
+        .game-header { display: flex; justify-content: space-between; width: 100%; margin-bottom: 20px; }
+        .stat-box { background: var(--grid); padding: 10px 20px; border-radius: 12px; border: 1px solid rgba(0,242,255,0.2); text-align: center; min-width: 80px; }
+        .stat-label { font-size: 10px; color: var(--neon); text-transform: uppercase; }
+        .stat-val { font-size: 20px; font-weight: 900; }
+
+        
+        #grid { 
+            position: relative; width: 380px; height: 380px; background: var(--grid); border-radius: 12px; padding: 10px; 
+            box-sizing: border-box; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 10px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.3);
+            --cell-size: 82.5px; --gap: 10px;
+        }
+        .grid-cell { background: var(--tile); border-radius: 8px; width: 100%; height: 100%; }
+
+        
+        .tile {
+            position: absolute; width: var(--cell-size); height: var(--cell-size); border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            font-size: 32px; font-weight: 900; transition: opacity 0.15s; z-index: 10;
+            cursor: grab; pointer-events: auto; user-select: none;
+        }
+        .tile:active { cursor: grabbing; }
+        .tile.dragging { opacity: 0.25; }
+        .tile-new { animation: popIn 0.2s ease-out; }
+        .tile-merged { animation: mergedPop 0.2s ease-out; }
+        .tile.falling { animation: fallFromTop 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+        @keyframes mergedPop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        @keyframes fallFromTop {
+            0% { top: -100px !important; opacity: 0; }
+            70% { top: calc(10px + var(--fall-r) * (var(--cell-size) + var(--gap)) + 5px) !important; opacity: 1; }
+            100% { top: calc(10px + var(--fall-r) * (var(--cell-size) + var(--gap))) !important; opacity: 1; }
+        }
+
+        
+        #powers { display: flex; justify-content: space-around; width: 100%; margin-top: 25px; gap: 10px; }
+        .power-btn { 
+            flex: 1; height: 60px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
+        }
+        .power-btn:hover { background: rgba(0,242,255,0.1); border-color: var(--neon); }
+        .power-btn i { font-size: 20px; margin-bottom: 2px; }
+        .power-btn span { font-size: 10px; opacity: 0.7; }
+        .power-btn.active { background: var(--neon) !important; color: #000; font-weight: 900; }
+
+        .back-btn { position: fixed; top: 20px; right: 20px; color: white; text-decoration: none; padding: 10px 20px; border-radius: 50px; background: rgba(255,255,255,0.05); }
+
+        
+        .v-2 { background: #eee4da; color: #776e65; }
+        .v-4 { background: #ede0c8; color: #776e65; }
+        .v-8 { background: #f2b179; color: white; box-shadow: 0 0 10px rgba(242,177,121,0.5); }
+        .v-16 { background: #f59563; color: white; box-shadow: 0 0 10px rgba(245,149,99,0.5); }
+        .v-32 { background: #f67c5f; color: white; box-shadow: 0 0 15px rgba(246,124,95,0.5); }
+        .v-64 { background: #f65e3b; color: white; box-shadow: 0 0 15px rgba(246,94,59,0.5); }
+        .v-128 { background: #edcf72; color: white; box-shadow: 0 0 20px rgba(237,207,114,0.6); font-size: 28px; }
+        .v-256 { background: #edcc61; color: white; box-shadow: 0 0 20px rgba(237,204,97,0.7); font-size: 28px; }
+        .v-512 { background: #edc850; color: white; box-shadow: 0 0 25px rgba(237,200,80,0.8); font-size: 28px; }
+        .v-1024 { background: #edc53f; color: white; box-shadow: 0 0 30px rgba(237,197,63,0.9); font-size: 24px; }
+        .v-2048 { background: var(--neon); color: #000; box-shadow: 0 0 40px var(--neon); font-size: 24px; }
+
+        #bomb-cursor { 
+            position: fixed; width: 40px; height: 40px; border: 3px dashed #ff3e3e; border-radius: 50%; pointer-events: none; 
+            z-index: 2000; display: none; transform: translate(-50%, -50%); animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-btn">← الرجوع</a>
+
+    <div id="game-container">
+        <div class="game-header">
+            <div class="stat-box">
+                <div class="stat-label">SCORE</div>
+                <div class="stat-val" id="score">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">BEST</div>
+                <div class="stat-val" id="best">0</div>
+            </div>
+        </div>
+
+        <div id="grid">
+            
+            <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+            <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+            <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+            <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+            
+        </div>
+
+        <div id="powers">
+            <div class="power-btn" onclick="undo()" title="تراجع">
+                <i>↩️</i><span>برجوع</span>
+            </div>
+            <div class="power-btn" id="bomb-btn" onclick="toggleBomb()" title="قنبلة - حذف خلية">
+                <i>💣</i><span>قنبلة</span>
+            </div>
+            <div class="power-btn" onclick="addManualTile()" title="أضف رقماً جديدا">
+                <i>➕</i><span>أضف</span>
+            </div>
+            <div class="power-btn" onclick="shuffle()" title="خلط الخلايا">
+                <i>🔀</i><span>خلط</span>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="bomb-cursor"></div>
+    <canvas id="engine-canvas" style="display:none"></canvas>
+
+    <script src="../js/core/engine.js"></script>
+    <script src="../js/core/engine-ui.js"></script>
+    <script src="../js/core/game-core.js"></script>
+
+    <script>
+        
+        const SIZE = 4;
+        let board = [], score = 0, history = [];
+        let bombMode = false;
+        let dragSrc = null;
+        let ghostEl = null;
+        let lastNewPos = null;  
+        let engine, ui;
+
+        function startSystem() {
+            engine = GameCore.setupEngine('engine-canvas', { width: 380, height: 380 });
+            ui = new EngineUI(engine, { title: 'NEO 2048', icon: '🧩' });
+        }
+
+        
+        function init() {
+            board = Array.from({length: SIZE}, () => Array(SIZE).fill(0));
+            score = 0; history = [];
+            addRandomTile(); addRandomTile();
+            updateStats(); renderBoard();
+        }
+
+        function addRandomTile() {
+            let empty = [];
+            for(let r=0; r<SIZE; r++) for(let c=0; c<SIZE; c++) if(board[r][c] === 0) empty.push({r,c});
+            if(empty.length > 0) {
+                const pos = empty[Math.floor(Math.random() * empty.length)];
+                board[pos.r][pos.c] = Math.random() < 0.9 ? 2 : 4;
+                lastNewPos = pos;  
+            }
+        }
+
+        function addManualTile() {
+            lastNewPos = null;
+            addRandomTile();
+            renderBoard();
+            updateStats();
+        }
+
+        
+        function renderBoard() {
+            const grid = document.getElementById('grid');
+            if(!grid || !board || !board[0]) return;
+            document.querySelectorAll('.tile').forEach(t => t.remove());
+
+            for(let r=0; r<SIZE; r++) {
+                if(!board[r]) continue;
+                for(let c=0; c<SIZE; c++) {
+                    const val = board[r][c];
+                    if(val !== 0) {
+                        const tile = document.createElement('div');
+                        tile.className = `tile v-${val}`;
+                        tile.textContent = val;
+                        tile.dataset.r = r;
+                        tile.dataset.c = c;
+                        tile.style.left = `calc(10px + ${c} * (var(--cell-size) + var(--gap)))`;
+                        tile.style.top  = `calc(10px + ${r} * (var(--cell-size) + var(--gap)))`;
+
+                        
+                        if(lastNewPos && lastNewPos.r === r && lastNewPos.c === c) {
+                            tile.style.setProperty('--fall-r', r);
+                            tile.classList.add('falling');
+                        }
+
+                        tile.addEventListener('mousedown',  e => { e.stopPropagation(); startDrag(e, r, c); });
+                        tile.addEventListener('touchstart', e => { e.stopPropagation(); startDrag(e, r, c); }, {passive:false});
+                        grid.appendChild(tile);
+                    }
+                }
+            }
+            lastNewPos = null; 
+        }
+
+        function getTileEl(r, c) {
+            return document.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`);
+        }
+
+        
+        function startDrag(e, r, c) {
+            if(bombMode) {
+                saveHistory();
+                board[r][c] = 0;
+                toggleBomb();
+                renderBoard();
+                return;
+            }
+            if(e.cancelable) e.preventDefault();
+            dragSrc = {r, c};
+
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const cy = e.touches ? e.touches[0].clientY : e.clientY;
+
+            
+            ghostEl = document.createElement('div');
+            ghostEl.className = `tile v-${board[r][c]}`;
+            ghostEl.textContent = board[r][c];
+            ghostEl.style.cssText = `position:fixed;z-index:2000;pointer-events:none;width:82.5px;height:82.5px;transition:none;opacity:0.9;box-shadow:0 8px 30px rgba(0,0,0,0.5);`;
+            moveGhost(cx, cy);
+            document.body.appendChild(ghostEl);
+
+            
+            const src = getTileEl(r, c);
+            if(src) src.classList.add('dragging');
+
+            
+            highlightTargets(r, c, true);
+        }
+
+        function moveGhost(x, y) {
+            if(!ghostEl) return;
+            ghostEl.style.left = (x - 41) + 'px';
+            ghostEl.style.top  = (y - 41) + 'px';
+        }
+
+        function getValidTargets(r, c) {
+            const val = board[r][c];
+            return [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([tr,tc]) =>
+                tr>=0 && tr<SIZE && tc>=0 && tc<SIZE &&
+                (board[tr][tc] === 0 || board[tr][tc] === val)
+            );
+        }
+
+        function highlightTargets(r, c, on) {
+            const cells = document.querySelectorAll('.grid-cell');
+            cells.forEach(cell => { cell.style.background = ''; cell.style.boxShadow = ''; });
+            if(!on) return;
+            getValidTargets(r, c).forEach(([tr, tc]) => {
+                const cell = cells[tr * SIZE + tc];
+                if(!cell) return;
+                const isMerge = board[tr][tc] !== 0;
+                cell.style.background   = isMerge ? 'rgba(255,215,0,0.35)' : 'rgba(0,242,255,0.25)';
+                cell.style.boxShadow    = isMerge ? '0 0 15px rgba(255,215,0,0.8)' : '0 0 10px rgba(0,242,255,0.6)';
+            });
+        }
+
+        function onDragMove(e) {
+            if(!dragSrc) return;
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const cy = e.touches ? e.touches[0].clientY : e.clientY;
+            moveGhost(cx, cy);
+        }
+
+        function onDragEnd(e) {
+            if(!dragSrc) return;
+            const cx = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+            const cy = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+
+            const grid = document.getElementById('grid');
+            const rect = grid.getBoundingClientRect();
+            
+            const stepW = (rect.width  - 10) / SIZE;
+            const stepH = (rect.height - 10) / SIZE;
+            const tc = Math.floor((cx - rect.left - 10) / stepW);
+            const tr = Math.floor((cy - rect.top  - 10) / stepH);
+
+            const {r: sr, c: sc} = dragSrc;
+
+            
+            if(ghostEl) { ghostEl.remove(); ghostEl = null; }
+            highlightTargets(sr, sc, false);
+            dragSrc = null;
+
+            
+            const inBounds   = tr>=0 && tr<SIZE && tc>=0 && tc<SIZE;
+            const isAdjacent = inBounds && (Math.abs(tr-sr) + Math.abs(tc-sc) === 1);
+
+            if(isAdjacent) {
+                if(board[tr][tc] === 0) {
+                    
+                    saveHistory();
+                    board[tr][tc] = board[sr][sc];
+                    board[sr][sc] = 0;
+                    addRandomTile();
+                } else if(board[tr][tc] === board[sr][sc]) {
+                    
+                    saveHistory();
+                    board[tr][tc] *= 2;
+                    score += board[tr][tc];
+                    board[sr][sc] = 0;
+                    addRandomTile();
+                }
+            }
+
+            renderBoard();
+            updateStats();
+            checkGameOver();
+        }
+
+        window.addEventListener('mousemove',  onDragMove);
+        window.addEventListener('mouseup',    onDragEnd);
+        window.addEventListener('touchmove',  e => { if(dragSrc && e.cancelable) e.preventDefault(); onDragMove(e); }, {passive:false});
+        window.addEventListener('touchend',   onDragEnd);
+
+        
+        window.addEventListener('mousemove', e => {
+            if(bombMode) {
+                const cursor = document.getElementById('bomb-cursor');
+                cursor.style.left = e.clientX + 'px';
+                cursor.style.top  = e.clientY + 'px';
+            }
+        });
+
+        
+        function saveHistory() {
+            history.push({ board: JSON.parse(JSON.stringify(board)), score });
+            if(history.length > 10) history.shift();
+        }
+
+        function undo() {
+            if(history.length > 0) {
+                const prev = history.pop();
+                board = prev.board; score = prev.score;
+                renderBoard(); updateStats();
+            }
+        }
+
+        function toggleBomb() {
+            bombMode = !bombMode;
+            document.getElementById('bomb-btn').classList.toggle('active', bombMode);
+            document.getElementById('bomb-cursor').style.display = bombMode ? 'block' : 'none';
+        }
+
+        function shuffle() {
+            saveHistory();
+            let vals = board.flat().filter(v => v !== 0);
+            for(let i=vals.length-1; i>0; i--) {
+                const j = Math.floor(Math.random()*(i+1));
+                [vals[i], vals[j]] = [vals[j], vals[i]];
+            }
+            board = Array.from({length:SIZE}, () => Array(SIZE).fill(0));
+            let idx=0;
+            for(let r=0; r<SIZE && idx<vals.length; r++)
+                for(let c=0; c<SIZE && idx<vals.length; c++)
+                    board[r][c] = vals[idx++];
+            renderBoard();
+            if(engine) engine.spawnExplosion(190, 190, '#00f2ff', 40);
+        }
+
+        
+        function updateStats() {
+            document.getElementById('score').textContent = score;
+            const best = localStorage.getItem('neo2048-best') || 0;
+            if(score > best) localStorage.setItem('neo2048-best', score);
+            document.getElementById('best').textContent = Math.max(score, best);
+            if(ui) ui.updateHUD({ score });
+        }
+
+        function checkGameOver() {
+            
+            for(let r=0; r<SIZE; r++) {
+                for(let c=0; c<SIZE; c++) {
+                    if(board[r][c] !== 0 && getValidTargets(r,c).length > 0) return;
+                }
+            }
+            if(ui) ui.showGameOver(score);
+        }
+
+        startSystem();
+        init();
+    </script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
+</body>
+
+</html>

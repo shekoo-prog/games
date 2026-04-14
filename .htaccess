@@ -1,0 +1,11 @@
+<IfModule mod_mime.c>
+  AddType application/manifest+json .json
+  AddType application/manifest+json .webmanifest
+</IfModule>
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(json|webmanifest)$">
+    Header set Access-Control-Allow-Origin "*"
+    Header set Content-Type "application/manifest+json; charset=utf-8"
+  </FilesMatch>
+</IfModule>

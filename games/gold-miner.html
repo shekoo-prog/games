@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+  <link rel="stylesheet" href="../assets/css/fonts-games.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>⛏️ صائد الذهب - عالم الألعاب</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Fredoka One', cursive; background: #2f211b; 
@@ -107,8 +107,8 @@
   </div>
 
 <script>
-// ── أصوات ──
-function snd(f) { try { const a=new Audio('../sounds/'+f); a.preload='auto'; return a; } catch(e){ return {play:()=>{},currentTime:0}; } }
+
+function snd(f) { try { const a=new Audio('../assets/sounds/'+f); a.preload='auto'; return a; } catch(e){ return {play:()=>{},currentTime:0}; } }
 const SFX = {
   start:   snd('mixkit-medieval-show-fanfare-announcement-226.wav'),
   drop:    snd('mixkit-retro-video-game-bubble-laser-277.wav'),
@@ -131,8 +131,8 @@ let floatTexts = [];
 
 const TARGETS = [0, 150, 420, 750, 1150, 1600, 2150, 2800, 3500, 4300];
 
-// ── حالة الخطاف ──
-// swing: يتأرجح, drop: نازل, reel: يسحب لفوق
+
+
 let hook = { state: 'swing', angle: 0, length: 15, dir: 1, grabbedItem: null, speedMultiplier: 1 };
 
 function initLevel() {
@@ -147,27 +147,27 @@ function initLevel() {
   
   hook = { state: 'swing', angle: 0, length: 30, dir: 1, grabbedItem: null, speedMultiplier: 1 };
   
-  // توليد الموارد (كلما زاد المستوى زادت الصخور)
-  for (let i = 0; i < 11; i++) spawnItem('🪙'); // ذهب عادي
-  for (let i = 0; i < 4 + Math.floor(level/2); i++) spawnItem('💎'); // ماس
-  for (let i = 0; i < 5 + level * 2; i++) spawnItem('🪨'); // الصخور تكثر مع المستويات
-  for (let i = 0; i < 4; i++) spawnItem('💰'); // أكياس مفاجآت
+  
+  for (let i = 0; i < 11; i++) spawnItem('🪙'); 
+  for (let i = 0; i < 4 + Math.floor(level/2); i++) spawnItem('💎'); 
+  for (let i = 0; i < 5 + level * 2; i++) spawnItem('🪨'); 
+  for (let i = 0; i < 4; i++) spawnItem('💰'); 
 }
 
 function spawnItem(type) {
   let size, pts, weight;
   switch (type) {
-    case '💎': size = 30; pts = 50; weight = 1.6; break;   // سريع جدا
+    case '💎': size = 30; pts = 50; weight = 1.6; break;   
     case '🪙': 
       const b = Math.random() > 0.6;
       size = b ? 50 : 35; pts = b ? 40 : 20; weight = b ? 0.7 : 1.0; break;
     case '💰': size = 45; pts = 30; weight = 1.0; break;
     case '🪨': 
       const br = Math.random() > 0.5;
-      size = br ? 60 : 45; pts = br ? 5 : 2; weight = br ? 0.3 : 0.4; break; // ثقيل جدا
+      size = br ? 60 : 45; pts = br ? 5 : 2; weight = br ? 0.3 : 0.4; break; 
   }
   
-  // نعطيه موقع عشوائي بالأسفل ولا يتداخل بشدة مع المركز بأعلى
+  
   let x, y;
   do {
     x = 40 + Math.random() * (W - 80);
@@ -184,7 +184,7 @@ function dropHook() {
   }
 }
 
-// التحكم
+
 document.getElementById('drop-btn').addEventListener('click', dropHook);
 canvas.addEventListener('mousedown', dropHook);
 canvas.addEventListener('touchstart', (e) => { if(e.cancelable) e.preventDefault(); dropHook(); }, { passive: false });
@@ -199,26 +199,26 @@ function addFloatText(x, y, text, col = '#ffd93d') {
 function update() {
   if (!running) return;
 
-  // 1. Swing
+  
   if (hook.state === 'swing') {
     hook.angle += 0.03 * hook.dir;
     if (hook.angle > 1.2) hook.dir = -1;
     if (hook.angle < -1.2) hook.dir = 1;
   }
   
-  // 2. Drop
+  
   if (hook.state === 'drop') {
-    hook.length += 6; // سرعة النزول
+    hook.length += 6; 
     const hx = W/2 + Math.sin(hook.angle) * hook.length;
     const hy = 20 + Math.cos(hook.angle) * hook.length;
 
-    // خبط في الجدران؟
+    
     if (hx < 0 || hx > W || hy > H) {
       hook.state = 'reel';
       hook.speedMultiplier = 1;
     }
 
-    // خبط في صخرة/ذهب؟
+    
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
       const dx = hx - it.x;
@@ -234,11 +234,11 @@ function update() {
     }
   }
 
-  // 3. Reel (السحب)
+  
   if (hook.state === 'reel') {
-    hook.length -= 4 * hook.speedMultiplier; // سرعة السحب حسب الوزن
+    hook.length -= 4 * hook.speedMultiplier; 
     if (hook.length <= 30) {
-      // وصل للباص
+      
       if (hook.grabbedItem) {
         let pts = hook.grabbedItem.pts;
         score += pts;
@@ -251,11 +251,11 @@ function update() {
     }
   }
 
-  // Float text
+  
   floatTexts.forEach(f => f.life--);
   floatTexts = floatTexts.filter(f => f.life > 0);
   
-  // الفوز إذا خلصت الجوائز؟
+  
   if (items.length === 0 && hook.state === 'swing') {
     if (score >= targetScore) {
       showLevelUp();
@@ -270,11 +270,11 @@ function update() {
 function draw() {
   ctx.clearRect(0,0,W,H);
   
-  // الخشبة العلوية للونش
+  
   ctx.fillStyle = '#4a2f1d';
   ctx.fillRect(W/2 - 40, 0, 80, 20);
 
-  // العناصر المتبقية
+  
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   items.forEach(it => {
     ctx.save();
@@ -285,7 +285,7 @@ function draw() {
     ctx.restore();
   });
 
-  // الحبل
+  
   const hx = W/2 + Math.sin(hook.angle) * hook.length;
   const hy = 20 + Math.cos(hook.angle) * hook.length;
   
@@ -296,7 +296,7 @@ function draw() {
   ctx.lineTo(hx, hy);
   ctx.stroke();
 
-  // الخطاف
+  
   ctx.save();
   ctx.translate(hx, hy);
   ctx.rotate(-hook.angle); 
@@ -306,7 +306,7 @@ function draw() {
   ctx.stroke();
   ctx.restore();
 
-  // لو ماسك حاجة
+  
   if (hook.grabbedItem) {
     ctx.save();
     ctx.font = hook.grabbedItem.size + 'px serif';
@@ -315,7 +315,7 @@ function draw() {
     ctx.restore();
   }
 
-  // نصوص طائرة
+  
   floatTexts.forEach(f => {
     ctx.save();
     ctx.globalAlpha = f.life / 60;
@@ -337,7 +337,7 @@ function showLevelUp() {
   running = false;
   clearInterval(timerInt);
   cancelAnimationFrame(animId);
-  play(SFX.start); // Using same success sound
+  play(SFX.start); 
   const nextTarget = TARGETS[level+1] || targetScore + 1000;
   const ov = document.getElementById('overlay');
   ov.innerHTML = `
@@ -396,5 +396,16 @@ function endGame() {
 
 document.getElementById('start-btn').addEventListener('click', startGame);
 </script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
 </body>
+
 </html>

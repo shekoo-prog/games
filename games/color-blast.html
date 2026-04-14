@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+  <link rel="stylesheet" href="../assets/css/fonts-games.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🎨 Color Blast - عالم الألعاب</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Tajawal:wght@700;900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -23,7 +23,7 @@
     }
     #back-btn:hover { background: rgba(255,255,255,0.22); }
 
-    /* ── HUD ── */
+    
     #hud {
       display: flex; gap: 18px; margin-bottom: 18px;
       font-size: 1.35rem; color: #fff; flex-wrap: wrap; justify-content: center;
@@ -41,7 +41,7 @@
       .hud-item { padding:4px 12px; border-radius:10px; }
     }
 
-    /* ── مؤقت ── */
+    
     #timer-wrap {
       width: min(540px, 95vw); height: 20px;
       background: rgba(255,255,255,0.1); border-radius: 20px;
@@ -53,7 +53,7 @@
       transition: width 0.2s linear;
     }
 
-    /* ── منطقة اللعبة ── */
+    
     #game-area {
       background: rgba(255,255,255,0.05);
       border: 2px solid rgba(255,255,255,0.12);
@@ -62,7 +62,7 @@
       max-width: 560px; width: 100%;
     }
 
-    /* ── دائرة الهدف ── */
+    
     #target-section {
       text-align: center; margin-bottom: 24px;
     }
@@ -91,7 +91,7 @@
       text-shadow: 0 2px 10px rgba(0,0,0,0.4);
     }
 
-    /* ── شبكة الألوان ── */
+    
     #colors-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -130,7 +130,7 @@
       75%     { transform: translateX(12px)  rotate(3deg);  }
     }
 
-    /* ── Overlay ── */
+    
     #overlay {
       position: fixed; inset: 0;
       background: rgba(15,52,96,0.92);
@@ -150,7 +150,7 @@
     }
     #overlay button:hover { transform: scale(1.08); }
 
-    /* ── تغذية راجعة كبيرة ── */
+    
     .big-feedback {
       position: fixed; top: 50%; left: 50%;
       font-size: 5rem; z-index: 200;
@@ -196,8 +196,8 @@
   </div>
 
 <script>
-// ── أصوات ──
-function snd(f) { try { const a=new Audio('../sounds/'+f); a.preload='auto'; return a; } catch(e){ return {play:()=>{},currentTime:0}; } }
+
+function snd(f) { try { const a=new Audio('../assets/sounds/'+f); a.preload='auto'; return a; } catch(e){ return {play:()=>{},currentTime:0}; } }
 const SFX = {
   correct: snd('mixkit-video-game-treasure-2066.wav'),
   wrong:   snd('mixkit-negative-guitar-tone-2324.wav'),
@@ -207,7 +207,7 @@ const SFX = {
 };
 function play(s){ try{ s.currentTime=0; s.play().catch(()=>{}); }catch(e){} }
 
-// ── 6 ألوان واضحة للأطفال فقط ──
+
 const COLORS = [
   { hex: '#e74c3c', name: 'أحمر',    glow: '#e74c3c', glow2: 'rgba(231,76,60,0.4)'   },
   { hex: '#f1c40f', name: 'أصفر',    glow: '#f1c40f', glow2: 'rgba(241,196,15,0.4)'   },
@@ -223,7 +223,7 @@ let targetColor;
 
 function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
 
-// اختر لون هدف جديد (مختلف عن السابق)
+
 function pickTarget() {
   let c;
   do { c = COLORS[Math.floor(Math.random() * COLORS.length)]; }
@@ -238,12 +238,12 @@ function pickTarget() {
   document.getElementById('target-name').style.color = c.hex;
 }
 
-// بناء الأزرار (4 ألوان عشوائية تشمل الهدف)
+
 function buildGrid() {
   const grid = document.getElementById('colors-grid');
   grid.innerHTML = '';
 
-  // اختر 3 ألوان مختلفة + الهدف
+  
   const others = shuffle(COLORS.filter(c => c !== targetColor)).slice(0, 3);
   const choices = shuffle([targetColor, ...others]);
 
@@ -264,7 +264,7 @@ function onPick(btn, c) {
   if (!running) return;
 
   if (c.hex === targetColor.hex) {
-    // ✅ صح
+    
     streak++;
     const bonus = Math.min(streak * 5, 50);
     score += 10 + bonus;
@@ -275,18 +275,18 @@ function onPick(btn, c) {
     btn.classList.add('correct');
     showFeedback(streak >= 5 ? '🔥' : streak >= 3 ? '😃' : '✅');
     if (streak % 5 === 0) play(SFX.streak); else play(SFX.correct);
-    // أعد ضبط الوقت ووليّد سؤال جديد
+    
     timeLeft = 100;
     setTimeout(() => { pickTarget(); buildGrid(); }, 380);
   } else {
-    // ❌ غلط
+    
     play(SFX.wrong);
     streak = 0;
     document.getElementById('streak').textContent = 0;
     btn.classList.add('wrong');
     showFeedback('❌');
     setTimeout(() => btn.classList.remove('wrong'), 400);
-    // عقوبة وقت بسيطة
+    
     timeLeft = Math.max(0, timeLeft - 12);
   }
 }
@@ -299,7 +299,7 @@ function showFeedback(emoji) {
   setTimeout(() => el.remove(), 700);
 }
 
-// ── المؤقت: ينزل ببطء (بدل 1 في 80ms → 1 في 120ms) ──
+
 function startTimer() {
   clearInterval(timerInt);
   timerInt = setInterval(() => {
@@ -307,7 +307,7 @@ function startTimer() {
     timeLeft = Math.max(0, timeLeft - 1);
     document.getElementById('timer-bar').style.width = timeLeft + '%';
     if (timeLeft <= 0) endGame();
-  }, 120);  // أبطأ من قبل (كان 80ms)
+  }, 120);  
 }
 
 function startGame() {
@@ -344,5 +344,16 @@ function endGame() {
 
 document.getElementById('start-btn').addEventListener('click', startGame);
 </script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
 </body>
+
 </html>

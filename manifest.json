@@ -1,23 +1,36 @@
 {
-  "name": "عالم الألعاب",
-  "short_name": "ألعاب",
+  "name": "عالم الألعاب للأطفال",
+  "short_name": "ألعابي",
+  "description": "9 ألعاب مذهلة للأطفال - تعمل بدون إنترنت",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#1a0b2e",
   "theme_color": "#ff6b6b",
-  "orientation": "portrait",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["games", "kids", "entertainment"],
   "icons": [
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn47uPC90ZXh0Pjwvc3ZnPg==",
+      "src": "images/icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn47uPC90ZXh0Pjwvc3ZnPg==",
+      "src": "images/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }

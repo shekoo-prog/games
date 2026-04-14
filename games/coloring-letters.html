@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+  <link rel="stylesheet" href="../assets/css/fonts-games.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>🖍️ تلوين الحروف والأرقام - عالم الألعاب</title>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@700;900&family=Fredoka+One&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -40,7 +40,7 @@
       text-align: center;
     }
 
-    /* ── أزرار الفئات ── */
+    
     .categories {
       display: flex;
       gap: 8px;
@@ -64,7 +64,7 @@
     }
     .cat-btn.active { background: #0984e3; color: white; border-color: #0984e3; }
 
-    /* ── التنقل بين الحروف ── */
+    
     .nav-row {
       display: flex;
       align-items: center;
@@ -99,7 +99,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
-    /* ── Canvas ── */
+    
     #canvas-wrap {
       background: white;
       border-radius: 20px;
@@ -112,11 +112,11 @@
     #canvas {
       border-radius: 16px;
       display: block;
-      /* touch-action none فقط على الـ canvas علشان الرسم */
+      
       touch-action: none;
     }
 
-    /* ── شريط الألوان والأدوات ── */
+    
     .tools-bar {
       display: flex;
       align-items: center;
@@ -218,12 +218,12 @@
     </div>
   </div>
 
-  <audio id="snd-click" src="../sounds/mixkit-video-game-treasure-2066.wav" preload="auto"></audio>
+  <audio id="snd-click" src="../assets/sounds/mixkit-video-game-treasure-2066.wav" preload="auto"></audio>
 
 <script>
 'use strict';
 
-// ── صوت ──
+
 function playClick() {
   try {
     const a = document.getElementById('snd-click').cloneNode();
@@ -231,7 +231,7 @@ function playClick() {
   } catch(e) {}
 }
 
-// ── البيانات ──
+
 const content = {
   ar_chars: ['أ','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','هـ','و','ي'],
   en_chars: ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'],
@@ -254,22 +254,22 @@ let isErasing    = false;
 let isDrawing    = false;
 let lastX = 0, lastY = 0;
 
-// ── Canvas ──
+
 const canvas  = document.getElementById('canvas');
 const ctx     = canvas.getContext('2d', { willReadFrequently: true });
 let cw = 300, ch = 260;
 
-// لوحة الحرف (mask) — شفافة، نرسم عليها الحرف فقط
+
 const maskCanvas = document.createElement('canvas');
 const mCtx      = maskCanvas.getContext('2d');
 
-// لوحة الرسم الحر
+
 const brushCanvas = document.createElement('canvas');
 const bCtx        = brushCanvas.getContext('2d');
 bCtx.lineCap  = 'round';
 bCtx.lineJoin = 'round';
 
-// ── حجم الـ canvas حسب الشاشة ──
+
 function setupSize() {
   const vw   = window.innerWidth;
   const vh   = window.innerHeight;
@@ -285,7 +285,7 @@ function setupSize() {
   bCtx.lineCap  = 'round'; bCtx.lineJoin = 'round';
 }
 
-// ── رسم الحرف كـ mask نظيف ──
+
 function buildMask() {
   mCtx.clearRect(0, 0, cw, ch);
   const text     = content[activeCat][currentIndex];
@@ -293,15 +293,15 @@ function buildMask() {
   mCtx.font          = `900 ${fontSize}px ${fonts[activeCat]}`;
   mCtx.textAlign     = 'center';
   mCtx.textBaseline  = 'middle';
-  mCtx.fillStyle     = '#ecf0f1';      // لون الحرف غير ملوّن
+  mCtx.fillStyle     = '#ecf0f1';      
   mCtx.fillText(text, cw / 2, ch / 2);
 }
 
-// ── الرسم على الـ canvas الرئيسي ──
+
 function drawScene() {
   ctx.clearRect(0, 0, cw, ch);
 
-  // 1 ─ خلفية مربّعات (نبات تلوين)
+  
   const sq = 16;
   for (let r = 0; r * sq < ch; r++) {
     for (let c = 0; c * sq < cw; c++) {
@@ -310,15 +310,15 @@ function drawScene() {
     }
   }
 
-  // 2 ─ رسم الحرف الأبيض المليان
+  
   ctx.drawImage(maskCanvas, 0, 0);
 
-  // 3 ─ تلوين الطفل داخل الحرف فقط عبر لوحة مؤقتة
+  
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = cw; tempCanvas.height = ch;
   const tCtx = tempCanvas.getContext('2d');
 
-  // ارسم شكل الحرف كـ mask أبيض
+  
   const text     = content[activeCat][currentIndex];
   const fontSize = Math.round(ch * 0.78);
   tCtx.font          = `900 ${fontSize}px ${fonts[activeCat]}`;
@@ -327,14 +327,14 @@ function drawScene() {
   tCtx.fillStyle     = 'black';
   tCtx.fillText(text, cw / 2, ch / 2);
 
-  // الآن ضع الألوان فوق الـ mask فقط
+  
   tCtx.globalCompositeOperation = 'source-in';
   tCtx.drawImage(brushCanvas, 0, 0);
 
-  // ارسم النتيجة على الـ canvas الرئيسي
+  
   ctx.drawImage(tempCanvas, 0, 0);
 
-  // 4 ─ ارسم حواف الحرف الداكنة فوق كل شيء
+  
   ctx.font          = `900 ${fontSize}px ${fonts[activeCat]}`;
   ctx.textAlign     = 'center';
   ctx.textBaseline  = 'middle';
@@ -344,14 +344,14 @@ function drawScene() {
   ctx.strokeText(text, cw / 2, ch / 2);
 }
 
-// ── تحديث التسمية ──
+
 function updateLabel() {
   const arr = content[activeCat];
   document.getElementById('char-label').textContent =
     arr[currentIndex] + '  (' + (currentIndex + 1) + '/' + arr.length + ')';
 }
 
-// ── تهيئة ──
+
 function init() {
   setupSize();
   buildMask();
@@ -360,7 +360,7 @@ function init() {
   updateLabel();
 }
 
-// ── تغيير الفئة ──
+
 document.querySelectorAll('.cat-btn').forEach(b => {
   b.addEventListener('click', () => {
     document.querySelectorAll('.cat-btn').forEach(x => x.classList.remove('active'));
@@ -372,7 +372,7 @@ document.querySelectorAll('.cat-btn').forEach(b => {
   });
 });
 
-// ── التنقل ──
+
 document.getElementById('btn-next').addEventListener('click', () => {
   currentIndex = (currentIndex + 1) % content[activeCat].length;
   bCtx.clearRect(0, 0, cw, ch);
@@ -384,7 +384,7 @@ document.getElementById('btn-prev').addEventListener('click', () => {
   buildMask(); drawScene(); updateLabel(); playClick();
 });
 
-// ── ألوان الفرشاة ──
+
 const colorsRow = document.getElementById('colors-row');
 COLORS.forEach((c, i) => {
   const b = document.createElement('div');
@@ -406,7 +406,7 @@ COLORS.forEach((c, i) => {
   colorsRow.appendChild(b);
 });
 
-// ── الممحاة والمسح ──
+
 document.getElementById('btn-erase').addEventListener('click', function () {
   isErasing = !isErasing;
   this.classList.toggle('active', isErasing);
@@ -419,7 +419,7 @@ document.getElementById('btn-clear').addEventListener('click', () => {
   playClick();
 });
 
-// ── أحجام الفرشاة ──
+
 document.querySelectorAll('.size-btn').forEach(b => {
   b.addEventListener('click', () => {
     document.querySelectorAll('.size-btn').forEach(x => x.classList.remove('active'));
@@ -429,7 +429,7 @@ document.querySelectorAll('.size-btn').forEach(b => {
   });
 });
 
-// ── موضع الإصبع / الماوس ──
+
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
   let cx, cy;
@@ -446,7 +446,7 @@ function getPos(e) {
   };
 }
 
-// ── أحداث الرسم (على الـ CANVAS فقط) ──
+
 function onStart(e) {
   if (e.cancelable) e.preventDefault();
   isDrawing = true;
@@ -478,19 +478,19 @@ function onMove(e) {
 
 function onEnd() { isDrawing = false; }
 
-// أحداث الماوس على الـ canvas فقط
+
 canvas.addEventListener('mousedown',  onStart);
 canvas.addEventListener('mousemove',  onMove);
 canvas.addEventListener('mouseup',    onEnd);
 canvas.addEventListener('mouseleave', onEnd);
 
-// أحداث اللمس على الـ canvas فقط (لا نستخدم window)
+
 canvas.addEventListener('touchstart', onStart, { passive: false });
 canvas.addEventListener('touchmove',  onMove,  { passive: false });
 canvas.addEventListener('touchend',   onEnd,   { passive: true });
 canvas.addEventListener('touchcancel',onEnd,   { passive: true });
 
-// ── تغيير الاتجاه ──
+
 window.addEventListener('resize', () => {
   setupSize();
   buildMask();
@@ -498,8 +498,19 @@ window.addEventListener('resize', () => {
   drawScene();
 });
 
-// ── بدء ──
+
 document.fonts.ready.then(init);
 </script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
 </body>
+
 </html>

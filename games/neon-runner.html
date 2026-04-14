@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>⚡ الهروب النيوني - Neon Runner</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#030310;font-family:'Tajawal',sans-serif;color:#fff;user-select:none;-webkit-user-select:none}
+#root{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column}
+
+
+.hud{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(0,0,0,.6);border-bottom:1px solid rgba(0,220,255,.15);flex-shrink:0;z-index:10}
+.back{background:rgba(0,220,255,.15);border:1px solid rgba(0,220,255,.3);color:#fff;padding:6px 14px;border-radius:18px;cursor:pointer;font-size:13px;font-family:'Tajawal',sans-serif;transition:.2s}
+.back:hover{background:rgba(0,220,255,.35)}
+.hud-center{text-align:center}
+.score-num{font-size:28px;font-weight:900;color:#00dcff;line-height:1;text-shadow:0 0 10px rgba(0,220,255,.5)}
+.score-lbl{font-size:10px;color:rgba(255,255,255,.35)}
+.best-lbl{font-size:11px;color:rgba(255,215,0,.6)}
+.hud-level{display:flex;flex-direction:column;align-items:center;gap:1px}
+.lv-num{font-size:20px;font-weight:900;color:#ff0088;text-shadow:0 0 8px rgba(255,0,136,.4)}
+.lv-lbl{font-size:10px;color:rgba(255,255,255,.35)}
+
+
+#cv{display:block;flex:1;touch-action:none}
+
+
+.ctrl{display:flex;gap:10px;padding:10px 14px;background:rgba(0,0,0,.7);border-top:1px solid rgba(0,220,255,.1);flex-shrink:0}
+.btn-jump{flex:1;background:linear-gradient(135deg,rgba(0,220,255,.2),rgba(0,100,200,.2));border:2px solid rgba(0,220,255,.5);color:#00dcff;border-radius:18px;padding:16px 0;font-size:18px;font-weight:900;font-family:'Tajawal',sans-serif;cursor:pointer;transition:.1s;-webkit-tap-highlight-color:transparent;display:flex;flex-direction:column;align-items:center;gap:2px}
+.btn-slide{flex:1;background:linear-gradient(135deg,rgba(255,0,136,.2),rgba(180,0,80,.2));border:2px solid rgba(255,0,136,.5);color:#ff0088;border-radius:18px;padding:16px 0;font-size:18px;font-weight:900;font-family:'Tajawal',sans-serif;cursor:pointer;transition:.1s;-webkit-tap-highlight-color:transparent;display:flex;flex-direction:column;align-items:center;gap:2px}
+.btn-jump:active{transform:scale(.94);background:rgba(0,220,255,.35)}
+.btn-slide:active{transform:scale(.94);background:rgba(255,0,136,.35)}
+.btn-sub{font-size:11px;font-weight:400;opacity:.6}
+
+
+.ov{position:fixed;inset:0;background:rgba(0,0,15,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:20px}
+.ov-ico{font-size:60px;animation:pop-in .7s cubic-bezier(.68,-.55,.27,1.55)}
+@keyframes pop-in{from{transform:scale(0)rotate(-180deg)}to{transform:scale(1)rotate(0)}}
+.ov-title{font-size:28px;font-weight:900;color:#00dcff;text-shadow:0 0 15px #00dcff;margin:10px 0 6px}
+.ov-score{font-size:52px;font-weight:900;color:#ff0088;text-shadow:0 0 15px #ff0088;margin:4px 0}
+.ov-best{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:8px}
+
+
+.how-box{background:rgba(0,220,255,.07);border:1px solid rgba(0,220,255,.15);border-radius:16px;padding:14px 18px;margin:10px 0;width:100%;max-width:300px}
+.how-title{font-size:14px;font-weight:900;color:rgba(0,220,255,.9);margin-bottom:10px;text-align:center}
+.how-row{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px}
+.how-row+.how-row{border-top:1px solid rgba(255,255,255,.05)}
+.how-key{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:3px 10px;font-size:13px;font-weight:700;color:#fff;white-space:nowrap;flex-shrink:0}
+.how-key.red{background:rgba(255,0,136,.15);border-color:rgba(255,0,136,.35);color:#ff0088}
+
+.ov-btn{background:linear-gradient(135deg,#00dcff,#0055ff);border:none;color:#fff;padding:14px 32px;border-radius:24px;cursor:pointer;font-family:'Tajawal',sans-serif;font-size:17px;font-weight:900;margin-top:14px;box-shadow:0 6px 20px rgba(0,200,255,.3);transition:.2s}
+.ov-btn:hover{transform:scale(1.05)}
+
+
+.obs-label{position:absolute;top:0;left:50%;transform:translate(-50%,-24px);font-size:11px;font-weight:700;color:#ffd700;pointer-events:none;white-space:nowrap}
+
+
+.countdown{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:150;pointer-events:none}
+.cd-num{font-size:90px;font-weight:900;color:#00dcff;text-shadow:0 0 30px #00dcff;animation:cd-pop .8s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes cd-pop{0%{transform:scale(.5);opacity:0}50%{transform:scale(1.2);opacity:1}100%{transform:scale(1.5);opacity:0}}
+
+
+.spop{position:fixed;font-size:18px;font-weight:900;color:#ffd700;text-shadow:0 0 8px #ffd700;pointer-events:none;animation:spop .9s ease-out forwards;z-index:190}
+@keyframes spop{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-50px)}}
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="hud">
+    <button class="back" onclick="location.href='../index.html'">← رجوع</button>
+    <div class="hud-center">
+      <div class="score-num" id="sc">0</div>
+      <div class="score-lbl">المسافة</div>
+      <div class="best-lbl">🏆 <span id="bs">0</span></div>
+    </div>
+    <div class="hud-level">
+      <div class="lv-num" id="lv">×1</div>
+      <div class="lv-lbl">السرعة</div>
+    </div>
+  </div>
+  <canvas id="cv"></canvas>
+  <div class="ctrl">
+    <button class="btn-jump" id="jbtn">
+      <span>↑ قفز</span>
+      <span class="btn-sub">SPACE / ↑</span>
+    </button>
+    <button class="btn-slide" id="sbtn">
+      <span>↓ انزلق</span>
+      <span class="btn-sub">↓ أو اسحب</span>
+    </button>
+  </div>
+</div>
+
+
+<div class="ov" id="ov-start">
+  <div class="ov-ico">⚡</div>
+  <div class="ov-title">الهروب النيوني</div>
+
+  <div class="how-box">
+    <div class="how-title">🎮 كيف تلعب؟</div>
+    <div class="how-row">
+      <span class="how-key">↑ قفز</span>
+      <span>للقفز فوق العقبات الأرضية 🔴</span>
+    </div>
+    <div class="how-row">
+      <span class="how-key red">↓ انزلق</span>
+      <span>للمرور تحت العوائق العلوية 🟣</span>
+    </div>
+    <div class="how-row">
+      <span>🏃</span>
+      <span>البطل يركض آلياً - تفادَ العقبات!</span>
+    </div>
+    <div class="how-row">
+      <span>⚡</span>
+      <span>السرعة تزداد كل 10 ثوان</span>
+    </div>
+  </div>
+
+  <button class="ov-btn" onclick="beginCountdown()">ابدأ اللعبة! ⚡</button>
+</div>
+
+
+<div class="ov" id="ov-go" style="display:none">
+  <div class="ov-ico">💀</div>
+  <div class="ov-title" style="color:#ff0088;text-shadow:0 0 15px #ff0088">اصطدمت!</div>
+  <div class="ov-score" id="go-sc">0</div>
+  <div class="ov-best">أفضل نتيجة: <b id="go-bs" style="color:#ffd700">0</b></div>
+
+  <div class="how-box" style="border-color:rgba(255,0,136,.2);background:rgba(255,0,136,.05)">
+    <div class="how-title" style="color:#ff8aaa">💡 تذكير</div>
+    <div class="how-row"><span class="how-key">↑ قفز</span><span>فوق الحواجز الحمراء</span></div>
+    <div class="how-row"><span class="how-key red">↓ انزلق</span><span>تحت البوابات البنفسجية</span></div>
+  </div>
+
+  <button class="ov-btn" onclick="beginCountdown()">حاول مجدداً ⚡</button>
+<script src="../js/core/game-core.js"></script>
+<script>
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+let W=0,H=0,GY=0; 
+
+
+let running=false,frame=0,score=0,best=0,speed=0;
+let player={x:0,y:0,vy:0,w:0,h:0,fullH:0,onGround:false,sliding:false,slideT:0};
+const GRAV=0.55, JUMP_V=-14, SLIDE_FRAMES=35;
+let obstacles=[],particles=[];
+let bgX=0; 
+
+
+function resize(){
+  const r=cv.getBoundingClientRect();
+  W=cv.width=Math.round(r.width)||Math.min(480,window.innerWidth);
+  H=cv.height=Math.round(r.height)||300;
+  if(H<100)H=cv.height=300;
+  GY=Math.round(H*.78);
+  player.fullH=Math.round(H*.12);
+  player.w=Math.round(H*.08);
+  player.x=Math.round(W*.18);
+}
+
+
+function beginCountdown(){
+  document.getElementById('ov-start').style.display='none';
+  document.getElementById('ov-go').style.display='none';
+  let n=3;
+  const tick=()=>{
+    if(n===0){startGame();return;}
+    const d=document.createElement('div');d.className='countdown';
+    const s=document.createElement('span');s.className='cd-num';s.textContent=n;
+    d.appendChild(s);document.body.appendChild(d);
+    setTimeout(()=>d.remove(),700);n--;setTimeout(tick,800);
+  };
+  tick();
+}
+
+
+function startGame(){
+  running=false;frame=0;score=0;speed=5;bgX=0;
+  player.y=GY-player.fullH;player.vy=0;player.h=player.fullH;
+  player.onGround=true;player.sliding=false;player.slideT=0;
+  obstacles=[];particles=[];
+  running=true;loop();
+}
+
+
+function jump(){
+  if(!running)return;
+  if(player.onGround&&!player.sliding){
+    player.vy=JUMP_V;player.onGround=false;
+    spawnParticles(player.x+player.w/2,GY,'#00dcff',8);
+  }
+}
+function startSlide(){
+  if(!running||!player.onGround)return;
+  player.sliding=true;player.slideT=SLIDE_FRAMES;
+}
+
+
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();jump();}
+  if(e.code==='ArrowDown'){e.preventDefault();startSlide();}
+});
+document.getElementById('jbtn').addEventListener('click',jump);
+document.getElementById('sbtn').addEventListener('click',startSlide);
+document.getElementById('jbtn').addEventListener('touchstart',e=>{e.preventDefault();jump();},{passive:false});
+document.getElementById('sbtn').addEventListener('touchstart',e=>{e.preventDefault();startSlide();},{passive:false});
+cv.addEventListener('click',jump);
+
+
+let ty0=0;
+cv.addEventListener('touchstart',e=>{ty0=e.touches[0].clientY;},{passive:true});
+cv.addEventListener('touchend',e=>{
+  const dy=e.changedTouches[0].clientY-ty0;
+  if(dy>30)startSlide();else if(dy<-30)jump();
+},{passive:true});
+
+
+
+function spawnObstacle(){
+  const type=['wall','gate','wall','wall'][Math.floor(Math.random()*4)];
+  const bw=Math.round(W*.06)+10;
+  if(type==='wall'){
+    const th=player.fullH*(1+Math.random()*.8);
+    obstacles.push({x:W+20,y:GY-th,w:bw,h:th,type:'wall',color:'#ff0066',label:'↑ قفز!'});
+  } else {
+    
+    const gh=Math.round(player.fullH*.38);
+    const gy2=GY-player.fullH*.65;
+    obstacles.push({x:W+20,y:gy2,w:bw+10,h:gh,type:'gate',color:'#bb00ff',label:'↓ انزلق!'});
+  }
+}
+
+
+function update(){
+  frame++;
+  
+  score=Math.floor(frame*speed/30);
+  document.getElementById('sc').textContent=score;
+  document.getElementById('lv').textContent='×'+(speed/5).toFixed(1);
+
+  
+  if(frame%300===0){
+    speed=Math.min(speed+0.4,12);
+    spawnScorePop('+SPEED!');
+    
+    GameCore.addCoins(1);
+  }
+
+  
+  if(!player.onGround){
+    player.vy+=GRAV;
+    player.y+=player.vy;
+  }
+  if(player.y>=GY-player.fullH){
+    player.y=GY-player.fullH;player.vy=0;player.onGround=true;
+  }
+  
+  if(player.sliding){
+    player.h=Math.round(player.fullH*.45);
+    player.slideT--;
+    if(player.slideT<=0)player.sliding=false;
+  } else {
+    player.h=player.fullH;
+  }
+  const py=player.onGround?GY-player.h:(player.sliding?player.y+player.fullH-player.h:player.y);
+
+  
+  const minGap=Math.max(80,160-frame*.05);
+  if(frame===1||obstacles.length===0||(obstacles[obstacles.length-1].x<W-minGap&&Math.random()<0.022+frame*.00003)){
+    spawnObstacle();
+  }
+
+  
+  obstacles.forEach(o=>o.x-=speed);
+  obstacles=obstacles.filter(o=>o.x+o.w>-10);
+
+  
+  const px2=player.x+player.w*.15, pw2=player.w*.7;
+  for(const o of obstacles){
+    if(px2+pw2>o.x&&px2<o.x+o.w&&py+player.h>o.y&&py<o.y+o.h){
+      running=false;
+      spawnParticles(player.x+player.w/2,py+player.h/2,'#ff0066',25);
+      
+      
+      GameCore.updateBest('neon-runner', score);
+      
+      
+      const d = GameCore.state.dailyChallenge;
+      if (d.game === 'neon-runner' && score >= d.goal && !d.completed) {
+        d.completed = true;
+        GameCore.addCoins(50);
+        GameCore.showPopup('🏆 اكتمل تحدي اليوم! +50', '#ffd700');
+        GameCore.save();
+      }
+
+      
+      if (score > 100) GameCore.addCoins(Math.floor(score/50));
+
+      best=Math.max(best,score);
+      document.getElementById('go-sc').textContent=score;
+      document.getElementById('go-bs').textContent=best;
+      document.getElementById('bs').textContent=best;
+      setTimeout(()=>{draw();document.getElementById('ov-go').style.display='flex';},500);
+      return;
+    }
+  }
+
+  
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.15;p.life-=.04;});
+  particles=particles.filter(p=>p.life>0);
+
+  bgX-=speed*.4;
+  document.getElementById('bs').textContent=Math.max(best,score);
+}
+
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  
+  const sky=ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#030310');sky.addColorStop(.6,'#080825');sky.addColorStop(1,'#0d0d30');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+
+  
+  ctx.fillStyle='rgba(255,255,255,.6)';
+  for(let i=0;i<40;i++) ctx.fillRect(((i*79+50)%W),(i*41)%(GY*.7),1,1);
+
+  
+  ctx.fillStyle='rgba(0,50,100,.25)';
+  for(let i=0;i<6;i++){
+    const bx=((bgX*(0.2+i*.06)+i*W/6)%W+W)%W;
+    const bh=40+i*15;
+    ctx.fillRect(bx,GY-bh,W/10,bh);
+  }
+
+  
+  ctx.save();
+  const gOff2=(frame*speed*.5)%60;
+  ctx.strokeStyle='rgba(0,220,255,.08)';ctx.lineWidth=1;
+  for(let x=((-gOff2)%60+W)%60-60;x<W;x+=60){ctx.beginPath();ctx.moveTo(x,GY);ctx.lineTo(x,H);ctx.stroke();}
+  for(let yi=0;yi<6;yi++){
+    const yfrac=yi/5;const yy=GY+yfrac*(H-GY);
+    ctx.globalAlpha=.4*(1-yfrac);ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke();
+  }ctx.globalAlpha=1;ctx.restore();
+
+  
+  ctx.shadowColor='#00dcff';ctx.shadowBlur=18;
+  ctx.strokeStyle='rgba(0,220,255,.7)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(0,GY);ctx.lineTo(W,GY);ctx.stroke();
+  ctx.shadowBlur=0;
+
+  
+  ctx.fillStyle='rgba(0,100,180,.06)';ctx.fillRect(0,GY,W,H-GY);
+
+  
+  obstacles.forEach(o=>{
+    ctx.shadowColor=o.color;ctx.shadowBlur=14;
+    const og=ctx.createLinearGradient(o.x,o.y,o.x+o.w,o.y+o.h);
+    og.addColorStop(0,o.color+'ee');og.addColorStop(1,o.color+'66');
+    ctx.fillStyle=og;
+    rr(ctx,o.x,o.y,o.w,o.h,5);ctx.fill();
+    ctx.strokeStyle=o.color;ctx.lineWidth=2;rr(ctx,o.x,o.y,o.w,o.h,5);ctx.stroke();
+    
+    ctx.fillStyle='rgba(255,255,255,.18)';rr(ctx,o.x+3,o.y+3,o.w-6,8,3);ctx.fill();
+    ctx.shadowBlur=0;
+    
+    if(o.x<player.x+W*.4&&o.x>0){
+      const lx=o.x+o.w/2;
+      const ly=o.type==='wall'?o.y-14:o.y-14;
+      ctx.font='bold 12px Tajawal';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle=o.color;ctx.shadowColor=o.color;ctx.shadowBlur=6;
+      ctx.fillText(o.label,lx,ly);ctx.shadowBlur=0;
+    }
+    
+    ctx.font='14px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(o.type==='wall'?'⬆':'⬇',o.x+o.w/2,o.y+o.h/2);
+  });
+
+  
+  const py=player.onGround?GY-player.h:(player.sliding?player.y+player.fullH-player.h:player.y);
+
+  
+  if(running){
+    for(let i=0;i<4;i++){
+      ctx.globalAlpha=.08*(4-i);ctx.fillStyle='#00dcff';
+      ctx.fillRect(player.x-i*speed-9,py,player.w,player.h);
+    }ctx.globalAlpha=1;
+  }
+
+  
+  ctx.shadowColor='#00dcff';ctx.shadowBlur=12;
+  const pg=ctx.createLinearGradient(player.x,py,player.x+player.w,py+player.h);
+  pg.addColorStop(0,'#00dcff');pg.addColorStop(1,'#0055ff');
+  ctx.fillStyle=pg;rr(ctx,player.x,py,player.w,player.h,6);ctx.fill();
+  ctx.strokeStyle='rgba(200,255,255,.6)';ctx.lineWidth=1.5;rr(ctx,player.x,py,player.w,player.h,6);ctx.stroke();
+  ctx.shadowBlur=0;
+
+  
+  if(!player.sliding){
+    ctx.fillStyle='rgba(255,255,255,.25)';rr(ctx,player.x+4,py+4,player.w-8,10,3);ctx.fill();
+    
+    const legA=Math.sin(frame*.3)*5;
+    ctx.fillStyle='#003aaa';
+    ctx.fillRect(player.x+3,py+player.h-12,Math.round(player.w*.38),12);
+    ctx.fillRect(player.x+player.w-3-Math.round(player.w*.38),py+player.h-12+legA,Math.round(player.w*.38),12);
+  } else {
+    
+    ctx.font='bold 14px Tajawal';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='#00dcff';ctx.fillText('⟫',player.x+player.w/2,py+player.h/2);
+  }
+
+  
+  particles.forEach(p=>{
+    ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.shadowColor=p.color;ctx.shadowBlur=6;
+    ctx.beginPath();ctx.arc(p.x,p.y,3*p.life,0,Math.PI*2);ctx.fill();
+  });ctx.globalAlpha=1;ctx.shadowBlur=0;
+
+  
+  if(player.sliding){
+    const prog=player.slideT/SLIDE_FRAMES;
+    ctx.fillStyle='rgba(255,0,136,.2)';ctx.fillRect(player.x,py-8,player.w,4);
+    ctx.fillStyle='#ff0088';ctx.fillRect(player.x,py-8,player.w*prog,4);
+  }
+}
+
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.arcTo(x+w,y,x+w,y+r,r);c.lineTo(x+w,y+h-r);c.arcTo(x+w,y+h,x+w-r,y+h,r);c.lineTo(x+r,y+h);c.arcTo(x,y+h,x,y+h-r,r);c.lineTo(x,y+r);c.arcTo(x,y,x+r,y,r);c.closePath();}
+
+function spawnParticles(x,y,color,n){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2, spd=2+Math.random()*5;
+    particles.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd-2,life:1,color});
+  }
+}
+function spawnScorePop(txt){
+  const d=document.createElement('div');d.className='spop';d.textContent=txt;
+  d.style.cssText=`left:${20+Math.random()*40}%;top:40%`;
+  document.body.appendChild(d);setTimeout(()=>d.remove(),950);
+}
+
+function loop(){update();draw();if(running)requestAnimationFrame(loop);}
+window.addEventListener('resize',()=>{resize();});
+resize();
+</script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
+</body>
+
+</html>

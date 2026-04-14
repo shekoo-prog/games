@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+  <link rel="stylesheet" href="../assets/css/fonts-games.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🚗 سباق السيارات - عالم الألعاب</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="../js/core/libs/three.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Fredoka One', cursive; background: #000;
@@ -59,7 +59,7 @@
     #btn-up { border-color: #00e5ff; background: rgba(0,229,255,0.15); font-size: 1.5rem; flex-direction: column; width: 65px; height: 65px; margin: 0 10px; }
     #btn-up:active { background: rgba(0,229,255,0.5); }
 
-    /* Overlay */
+    
     #overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.92);
       display: flex; flex-direction: column; align-items: center;
@@ -129,8 +129,8 @@
   <div id="flash-overlay"></div>
 
 <script>
-// ── أصوات ──
-function snd(f) { try { const a=new Audio('../sounds/'+f); a.preload='auto'; return a; } catch(e){ return {play:()=>{},currentTime:0}; } }
+
+function snd(f) { try { const a=new Audio('../assets/sounds/'+f); a.preload='auto'; return a; } catch(e){ return {play:()=>{},currentTime:0}; } }
 const SFX = {
   start: snd('mixkit-arcade-rising-231.wav'),
   over:  snd('mixkit-long-game-over-notification-276.wav'),
@@ -145,9 +145,9 @@ const H = Math.min(window.innerHeight - 100, 600);
 document.getElementById('renderer-wrap').style.width  = W + 'px';
 document.getElementById('renderer-wrap').style.height = H + 'px';
 
-// ── Three.js (Night Mode) ──
+
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x05051a); // ليل مظلم جداً
+scene.background = new THREE.Color(0x05051a); 
 scene.fog = new THREE.FogExp2(0x05051a, 0.04);
 
 const camera = new THREE.PerspectiveCamera(65, W/H, 0.1, 150);
@@ -157,25 +157,25 @@ camera.lookAt(0, 0, 0);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
 renderer.setSize(W, H);
 renderer.shadowMap.enabled = true;
-// renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
 document.getElementById('three-container').appendChild(renderer.domElement);
 
-// ── إضاءة الشوارع والسيارات ──
-scene.add(new THREE.AmbientLight(0x222244, 0.8)); // ضوء قمري خافت
-const playerLight = new THREE.PointLight(0xffffff, 1.5, 30); // كشافات السيارة
+
+scene.add(new THREE.AmbientLight(0x222244, 0.8)); 
+const playerLight = new THREE.PointLight(0xffffff, 1.5, 30); 
 scene.add(playerLight);
 
-// ── الاقتصاد ──
+
 let globalCoins = parseInt(localStorage.getItem('coins')) || 0;
 let unlockedBadges = JSON.parse(localStorage.getItem('badges')) || [];
 let purchasedItems = JSON.parse(localStorage.getItem('purchased')) || [];
 
-// ── بناء السيارت (العادية والشرطة) ──
+
 function createCar(type) {
   const group = new THREE.Group();
   
   let colorHex = 0xff4757;
-  if(type === 'police') colorHex = 0x111111; // شرطة
+  if(type === 'police') colorHex = 0x111111; 
   else if(type === 'player' && purchasedItems.includes('car_police')) colorHex = 0x222222;
   else if(type === 'player') colorHex = 0x4d96ff;
   else {
@@ -183,19 +183,19 @@ function createCar(type) {
     colorHex = cols[Math.floor(Math.random()*cols.length)];
   }
 
-  // جسم
+  
   const bodyGeo = new THREE.BoxGeometry(1.6, 0.6, 3.2);
   const bodyMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.3, metalness: 0.7 });
   const body = new THREE.Mesh(bodyGeo, bodyMat);
   body.position.y = 0.6; body.castShadow = true; group.add(body);
   
-  // كابينة (بيضاء للشرطة، غامقة للغير)
+  
   const cabinGeo = new THREE.BoxGeometry(1.2, 0.55, 1.5);
   const cabinMat = new THREE.MeshStandardMaterial({ color: (type==='police'||(type==='player'&&purchasedItems.includes('car_police'))) ? 0xffffff : 0x111122, roughness: 0.1, metalness: 0.4 });
   const cabin = new THREE.Mesh(cabinGeo, cabinMat);
   cabin.position.set(0, 1.15, -0.2); cabin.castShadow = true; group.add(cabin);
 
-  // سرينة الشرطة
+  
   if (type === 'police' || (type === 'player' && purchasedItems.includes('car_police'))) {
     const sirenGeo = new THREE.BoxGeometry(0.8, 0.15, 0.3);
     const sirenMat = new THREE.MeshBasicMaterial({ color: 0x0000ff });
@@ -204,7 +204,7 @@ function createCar(type) {
     group.add(siren);
     group.userData.siren = siren;
     
-    // إضاءة الشرطة
+    
     if(type === 'police') {
       const pl = new THREE.PointLight(0xff0000, 1, 15);
       pl.position.set(0,2,0);
@@ -213,7 +213,7 @@ function createCar(type) {
     }
   }
 
-  // الأضواء الخلفية
+  
   if(type !== 'player') {
     const tailGeo = new THREE.BoxGeometry(1.4, 0.15, 0.1);
     const tailMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
@@ -221,7 +221,7 @@ function createCar(type) {
     tail.position.set(0, 0.6, 1.6);
     group.add(tail);
   } else {
-    // كشافات أمامية للاعب
+    
     const headGeo = new THREE.BoxGeometry(1.4, 0.15, 0.1);
     const headMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const head = new THREE.Mesh(headGeo, headMat);
@@ -229,7 +229,7 @@ function createCar(type) {
     group.add(head);
   }
 
-  // عجلات
+  
   const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.2, 16); wheelGeo.rotateZ(Math.PI/2);
   const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
   const wPos = [ [-0.85, 0.35, 1.0], [0.85, 0.35, 1.0], [-0.85, 0.35, -1.0], [0.85, 0.35, -1.0] ];
@@ -238,7 +238,7 @@ function createCar(type) {
   return group;
 }
 
-// ── الطريق والبيئة (ليلية) ──
+
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: 0x081008, roughness: 1 }));
 ground.rotation.x = -Math.PI / 2; scene.add(ground);
 
@@ -246,7 +246,7 @@ const LANES  = [-3.5, 0, 3.5];
 const road = new THREE.Mesh(new THREE.PlaneGeometry(12, 200), new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8, metalness:0.2 }));
 road.rotation.x = -Math.PI / 2; road.position.y = 0.01; road.receiveShadow = true; scene.add(road);
 
-// مباني ليلية لامعة عشوائية على جانبي الطريق
+
 const buildings = [];
 const bGeo = new THREE.BoxGeometry(3, 10, 3);
 const bMat1 = new THREE.MeshStandardMaterial({ color: 0x111122 });
@@ -269,14 +269,14 @@ const N_LINES = 10; const LINE_SPACING = 8;
   }
 });
 
-// ── اللاعب والمتغيرات ──
+
 const player = createCar('player');
 scene.add(player);
 
 let score=0, coinsCollected=0, best=0, lives=3, running=false;
 let laneIdx=1, targetX=LANES[1];
 let speed=15, baseSpeed=15;
-let plyY = 0, plyVy = 0, isJumping = false; // للقفز والمنحدرات
+let plyY = 0, plyVy = 0, isJumping = false; 
 let nitro = 100, isNitro = false;
 let nitroTrail = []; 
 
@@ -285,7 +285,7 @@ let obstacles=[], coins=[], ramps=[];
 
 function updateLives() { document.getElementById('lives-display').textContent = '❤️'.repeat(Math.max(0, lives)); }
 
-// تحكم
+
 document.addEventListener('keydown', e => {
   if(!running) return;
   if(e.key==='ArrowLeft' || e.key==='a') moveDir(-1);
@@ -313,7 +313,7 @@ renderer.domElement.addEventListener('touchend',   e => {
     if(dx < -40) moveDir(-1);
     if(dx >  40) moveDir( 1);
   } else {
-    if(dy < -40) activateNitro(); // سحب للأعلى
+    if(dy < -40) activateNitro(); 
   }
 }, {passive:true});
 
@@ -325,21 +325,21 @@ function moveDir(d) {
 function activateNitro() {
   if (nitro > 10) { 
     isNitro = true; 
-    // إذا كان فوق منحدر يطير أطول
+    
     if(plyY <= 0) {
-      // إجبار القفز القوي بالنيترو إذا لم يكن على منحدر
-      // لا يطير وحده إلا بمنحدر، ولكن نسرع جداً
+      
+      
     }
   }
 }
 function deactivateNitro() { isNitro = false; }
 
 function spawnCarObstacle() {
-  // 15% فرصة تكون سيارة شرطة
+  
   const type = Math.random() < 0.15 ? 'police' : 'normal';
   const obs = createCar(type);
   const lane = LANES[Math.floor(Math.random()*3)];
-  // فحص منع التداخل
+  
   const isOccupied = ramps.some(r => Math.abs(r.position.x - lane)<1 && Math.abs(r.position.z - (-100)) < 15);
   if(isOccupied) return;
 
@@ -353,7 +353,7 @@ function spawnRamp() {
   const mat = new THREE.MeshStandardMaterial({ color: 0xe67e22, roughness: 0.9 });
   const ramp = new THREE.Mesh(geo, mat);
   ramp.position.set(LANES[Math.floor(Math.random()*3)], -0.3, -100);
-  ramp.rotation.x = Math.PI * 0.1; // زاوية المنحدر
+  ramp.rotation.x = Math.PI * 0.1; 
   scene.add(ramp); ramps.push(ramp);
 }
 
@@ -365,7 +365,7 @@ function spawnCoin() {
   scene.add(coin); coins.push(coin);
 }
 
-// انفجار العملة
+
 function burst(pos) {
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.8, 1.2, 16), new THREE.MeshBasicMaterial({ color: 0xffd93d, side: THREE.DoubleSide, transparent:true }));
   ring.position.copy(pos); ring.rotation.x = -Math.PI/2; scene.add(ring);
@@ -383,11 +383,11 @@ function animate(ts=0) {
 
   if(!running) { renderer.render(scene, camera); return; }
 
-  // النيترو
+  
   if(isNitro && nitro > 0) {
     nitro -= 20 * dt; speed = baseSpeed * 1.8;
     camera.fov = 75; camera.updateProjectionMatrix();
-    // إشعاع أزرق 
+    
     const p = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.2,0.8), new THREE.MeshBasicMaterial({color:0x00e5ff, transparent:true, opacity:0.8}));
     p.position.set(player.position.x, player.position.y+0.2, player.position.z+2);
     scene.add(p); nitroTrail.push(p);
@@ -398,34 +398,34 @@ function animate(ts=0) {
   document.getElementById('nitro-fill').style.width = Math.max(0, nitro) + '%';
   document.getElementById('nitro-fill').style.background = isNitro ? '#ff4757' : 'linear-gradient(90deg, #00e5ff, #845ef7)';
   
-  // ذيل النيترو
+  
   nitroTrail = nitroTrail.filter(t => {
     t.scale.multiplyScalar(0.9); t.material.opacity -= 0.1;
     if(t.material.opacity <= 0) { scene.remove(t); return false; }
     return true;
   });
 
-  // حركة اللاعب
+  
   player.position.x += (targetX - player.position.x) * (isNitro? 0.25 : 0.15);
-  player.position.z = 9; // ثابت
+  player.position.z = 9; 
 
-  // ضوء كشاف اللاعب
+  
   playerLight.position.set(player.position.x, player.position.y + 1, player.position.z - 5);
 
-  // سرينة الشرطة إن وجدت
+  
   if (purchasedItems.includes('car_police')) {
     player.userData.siren && player.userData.siren.material.color.setHex((Math.floor(ts/150)%2===0) ? 0xff0000 : 0x0000ff);
   }
 
-  // الجاذبية والقفز
+  
   if (plyY > 0 || plyVy !== 0) {
-    plyVy -= 20 * dt; // جاذبية
+    plyVy -= 20 * dt; 
     plyY += plyVy * dt;
     if (plyY <= 0) { plyY = 0; plyVy = 0; isJumping = false; player.rotation.x = 0; }
     player.position.y = plyY;
   }
 
-  score += Math.floor(speed * dt); // إضافة سكور مستمر
+  score += Math.floor(speed * dt); 
   document.getElementById('score').textContent = score;
 
   lineObjs.forEach(l => { l.position.z += speed * dt; if (l.position.z > 14) l.position.z -= (N_LINES * LINE_SPACING); });
@@ -434,29 +434,29 @@ function animate(ts=0) {
     if(b.position.z > 30) { b.position.z = -200 - Math.random()*50; b.position.x = (Math.random()>0.5?1:-1) * (10 + Math.random()*15); }
   });
 
-  // توليد
+  
   spawnTimer += dt; if(spawnTimer > Math.max(0.4, 1.5 - speed/30)) { spawnTimer=0; spawnCarObstacle(); }
   spawnCoinTimer += dt; if(spawnCoinTimer > 1.0) { spawnCoinTimer=0; spawnCoin(); }
   spawnRampTimer += dt; if(spawnRampTimer > 4.0) { spawnRampTimer=0; spawnRamp(); }
 
-  // حركة التصادم للمنحدرات
+  
   ramps.forEach(r => { r.position.z += speed*dt; });
   ramps = ramps.filter(r => {
     if(r.position.z > 16) { scene.remove(r); return false; }
-    // هل اللاعب داس على المنحدر؟
+    
     if (!isJumping && Math.abs(r.position.x - player.position.x) < 1.5 && Math.abs(r.position.z - player.position.z) < 2.5) {
-      plyVy = isNitro ? 16 : 10; // قفزة هائلة لو في نيترو
+      plyVy = isNitro ? 16 : 10; 
       isJumping = true;
       play(SFX.jump);
-      player.rotation.x = -Math.PI/6; // يميل للأعلى
+      player.rotation.x = -Math.PI/6; 
     }
     return true;
   });
 
-  // عقبات السيارات
+  
   obstacles.forEach(o => { 
     o.position.z += (o.userData.type === 'police' ? speed*0.2 : speed*0.6) * dt; 
-    // سرينة الشرطة
+    
     if(o.userData.type === 'police' && o.userData.siren) {
       const isOn = Math.floor(ts/150)%2 === 0;
       o.userData.siren.material.color.setHex(isOn ? 0xff0000 : 0x0000ff);
@@ -465,14 +465,14 @@ function animate(ts=0) {
   });
   obstacles = obstacles.filter(o => {
     if(o.position.z > 16) { scene.remove(o); return false; }
-    // التصادم فقط إذا لم يكن اللاعب طائراً عاليًا فوقها
+    
     if (plyY < 1.0) {
       const dx = Math.abs(o.position.x - player.position.x);
       const dz = Math.abs(o.position.z - player.position.z);
       if (dx < 1.5 && dz < 3.0) {
         scene.remove(o);
         hitFlash = 15; lives--; updateLives(); play(SFX.crash);
-        // اهتزاز الشاشة الكلي
+        
         document.body.style.transform = `translate(${(Math.random()-0.5)*10}px, ${(Math.random()-0.5)*10}px)`;
         setTimeout(()=> document.body.style.transform='none', 100);
         if(lives <= 0) gameOver();
@@ -482,7 +482,7 @@ function animate(ts=0) {
     return true;
   });
 
-  // عملات
+  
   coins.forEach(c => { c.position.z += speed * dt; c.rotation.y += dt * 4; });
   coins = coins.filter(c => {
     if(c.position.z > 16) { scene.remove(c); return false; }
@@ -506,7 +506,7 @@ function gameOver() {
   running = false; play(SFX.over);
   const flash = document.getElementById('flash-overlay'); flash.style.opacity = '1'; setTimeout(()=> flash.style.opacity='0', 500);
   
-  // إضافة العملات لـ Global Economy
+  
   globalCoins += coinsCollected;
   localStorage.setItem('coins', globalCoins);
   
@@ -541,5 +541,16 @@ function startGame() {
 document.getElementById('start-btn').addEventListener('click', startGame);
 requestAnimationFrame(animate);
 </script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
 </body>
+
 </html>

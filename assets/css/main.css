@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+
+:root {
+  --primary: #7b2fff;
+  --secondary: #00d4ff;
+  --accent: #ff8300;
+  --kids: #ff6b9d;
+  --bg: #050010;
+  --card-bg: rgba(255, 255, 255, 0.05);
+  --glass: rgba(255, 255, 255, 0.03);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Tajawal', sans-serif;
+  background: var(--bg);
+  color: #fff;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(123, 47, 255, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 40%);
+}
+
+/* ───── PLAYER DASHBOARD (HEADER) ───── */
+.dashboard-header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(5, 0, 16, 0.85);
+  backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+  padding: 12px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.player-profile {
+  display: flex; align-items: center; gap: 12px; cursor: pointer;
+}
+.avatar-circle {
+  width: 45px; height: 45px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; box-shadow: 0 0 15px rgba(123, 47, 255, 0.4);
+}
+.player-info { line-height: 1.2; }
+.player-name { font-size: 15px; font-weight: 900; }
+.player-rank { font-size: 11px; color: rgba(255,255,255,0.5); }
+
+.economy-pills { display: flex; gap: 10px; }
+.pill {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px; padding: 6px 14px; display: flex; align-items: center; gap: 6px;
+  font-weight: 900; font-size: 13px; color: #ffd700;
+}
+.pill.gems { color: #00d4ff; }
+
+/* ───── HERO / DAILY ───── */
+.hero-v2 {
+  padding: 30px 20px; text-align: center;
+}
+.daily-challenge-card {
+  max-width: 600px; margin: 0 auto;
+  background: linear-gradient(135deg, rgba(123, 47, 255, 0.2), rgba(0, 212, 255, 0.1));
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px; padding: 25px;
+  display: flex; align-items: center; gap: 20px;
+  text-align: right; position: relative; overflow: hidden;
+}
+.daily-ico { font-size: 60px; filter: drop-shadow(0 0 20px var(--primary)); }
+.daily-content h3 { font-size: 22px; font-weight: 900; color: #ffd700; margin-bottom: 5px; }
+.daily-content p { font-size: 13px; opacity: 0.7; }
+.daily-btn {
+  margin-right: auto; background: #fff; color: #000;
+  border: none; padding: 10px 20px; border-radius: 15px;
+  font-weight: 900; font-size: 14px; cursor: pointer;
+  box-shadow: 0 5px 15px rgba(255,255,255,0.2);
+}
+
+/* ───── TABS / FILTERS ───── */
+.filter-tabs {
+  display: flex; padding: 0 20px; gap: 10px; overflow-x: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.filter-tabs::-webkit-scrollbar { display: none; }
+.tab {
+  padding: 10px 22px; border-radius: 25px; background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6);
+  font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: .3s;
+}
+.tab.active {
+  background: var(--primary); color: #fff; border-color: var(--primary);
+  box-shadow: 0 5px 15px rgba(123, 47, 255, 0.4);
+}
+
+/* ───── UNIFIED GRID ───── */
+.main-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 15px; padding: 20px;
+}
+.game-card {
+  background: var(--card-bg); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px; padding: 18px 14px; text-decoration: none; color: #fff;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  transition: all .4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative; overflow: hidden;
+}
+.game-card:hover { transform: translateY(-8px) scale(1.03); background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+.card-icon { font-size: 45px; transition: .4s; }
+.game-card:hover .card-icon { transform: scale(1.1) rotate(5deg); }
+.card-title { font-size: 15px; font-weight: 900; text-align: center; }
+.card-badge {
+  font-size: 9px; font-weight: 900; background: rgba(255,255,255,0.1);
+  padding: 3px 10px; border-radius: 10px; text-transform: uppercase;
+}
+
+/* ───── MODALS / OVERLAYS ───── */
+.core-modal {
+  position: fixed; inset: 0; z-index: 2000;
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); }
+.modal-content {
+  position: relative; background: #1a1a2e; border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 30px; width: 100%; max-width: 450px; padding: 30px;
+  animation: modalScale .3s backwards;
+}
+@keyframes modalScale { from { transform: scale(0.9); opacity: 0; } }
+.modal-close { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; opacity: 0.5; }
+
+/* ───── TROPHY ROOM ───── */
+.trophy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+.trophy-item {
+  background: rgba(255,255,255,0.03); border-radius: 15px; padding: 15px;
+  text-align: center; border: 1px solid rgba(255,255,255,0.05); filter: grayscale(1); opacity: 0.5;
+}
+.trophy-item.unlocked { filter: none; opacity: 1; border-color: #ffd700; background: rgba(255,215,0,0.05); }
+.trophy-ico { font-size: 32px; margin-bottom: 5px; }
+.trophy-name { font-size: 13px; font-weight: 900; }
+
+@media (max-width: 400px) {
+  .main-grid { grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
+}

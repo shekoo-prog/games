@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neo Snake - Antigravity</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; background: #000510; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        canvas { background: #000814; border-radius: 15px; box-shadow: 0 0 50px rgba(0,255,150,0.1); border: 2px solid rgba(0,255,150,0.2); }
+        #back-btn { position: fixed; top: 20px; right: 20px; color: white; text-decoration: none; font-family: 'Outfit'; background: rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 50px; z-index: 3000; }
+    </style>
+</head>
+<body>
+    <a href="../index.html" id="back-btn">← Back to Hub</a>
+    <canvas id="gameCanvas"></canvas>
+
+    <script src="../js/core/engine.js"></script>
+    <script src="../js/core/engine-ui.js"></script>
+    <script src="../js/core/game-core.js"></script>
+
+    <script>
+        
+        const GRID_SIZE = 25;
+        const engine = GameCore.setupEngine('gameCanvas', { width: 800, height: 600 });
+        const ui = new EngineUI(engine, {
+            title: 'NEO SNAKE',
+            icon: '🐍',
+            instructions: 'ARROWS / Swipe to MOVE<br>Eat Neon Food to grow<br>Beware of Portals and Red Guards!'
+        });
+
+        
+        let score = 0, level = 1, lives = 1;
+        let snake = {
+            body: [{x: 10, y: 10}, {x: 9, y: 10}, {x: 8, y: 10}],
+            dir: {x: 1, y: 0},
+            nextDir: {x: 1, y: 0},
+            color: '#00ffaa'
+        };
+        let food = {x: 15, y: 15, type: 'normal'};
+        let portals = [
+            {x: 5, y: 5, outX: 25, outY: 18, color: '#ff00ff'},
+            {x: 25, y: 18, outX: 5, outY: 5, color: '#ff00ff'}
+        ];
+        let powerups = [];
+        let enemies = [];
+        let moveTimer = 0;
+        let moveInterval = 0.15; 
+        let gameOver = false;
+        let shieldActive = 0;
+
+        
+        let inputQueue = [];
+        window.addEventListener('keydown', e => {
+            const key = e.key;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
+                e.preventDefault();
+                inputQueue.push(key);
+                if (inputQueue.length > 2) inputQueue.shift(); 
+            }
+        });
+
+        
+        let touchStart = null;
+        window.addEventListener('touchstart', e => { touchStart = {x: e.touches[0].clientX, y: e.touches[0].clientY}; });
+        window.addEventListener('touchend', e => {
+            if (!touchStart) return;
+            let dx = e.changedTouches[0].clientX - touchStart.x;
+            let dy = e.changedTouches[0].clientY - touchStart.y;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 30) inputQueue.push('ArrowRight');
+                else if (dx < -30) inputQueue.push('ArrowLeft');
+            } else {
+                if (dy > 30) inputQueue.push('ArrowDown');
+                else if (dy < -30) inputQueue.push('ArrowUp');
+            }
+            if (inputQueue.length > 2) inputQueue.shift();
+            touchStart = null;
+        });
+
+        
+        function spawnFood() {
+            let pos;
+            do {
+                pos = {
+                    x: Math.floor(Math.random() * (engine.width / GRID_SIZE)),
+                    y: Math.floor(Math.random() * (engine.height / GRID_SIZE))
+                };
+            } while (snake.body.some(b => b.x === pos.x && b.y === pos.y));
+            
+            food = { ...pos, type: Math.random() > 0.9 ? 'golden' : 'normal' };
+        }
+
+        function spawnPowerup() {
+            let pos;
+            do {
+                pos = {
+                    x: Math.floor(Math.random() * (engine.width / GRID_SIZE)),
+                    y: Math.floor(Math.random() * (engine.height / GRID_SIZE))
+                };
+            } while (snake.body.some(b => b.x === pos.x && b.y === pos.y));
+
+            const types = ['shield', 'slow', 'speed'];
+            powerups.push({ ...pos, type: types[Math.floor(Math.random() * types.length)], life: 10 });
+        }
+
+        function spawnEnemy() {
+            enemies.push({
+                x: Math.random() > 0.5 ? 0 : (engine.width/GRID_SIZE - 1),
+                y: Math.floor(Math.random() * (engine.height / GRID_SIZE)),
+                vx: Math.random() > 0.5 ? 1 : -1,
+                vy: 0
+            });
+        }
+
+        
+        engine.onUpdate = (dt) => {
+            if (gameOver || !engine.isRunning) return;
+
+            moveTimer += dt;
+            if (shieldActive > 0) shieldActive -= dt;
+
+            
+            enemies.forEach(e => {
+                e.x += e.vx * 0.2 * 60 * dt / 13; 
+                const maxX = engine.width / GRID_SIZE;
+                if(e.x < 0 || e.x >= maxX) e.vx *= -1;
+
+                if (!shieldActive) {
+                    const dx = e.x - snake.body[0].x;
+                    const dy = e.y - snake.body[0].y;
+                    if (Math.abs(dx) < 0.7 && Math.abs(dy) < 0.7) {
+                        triggerGameOver();
+                    }
+                }
+            });
+
+            
+            if (moveTimer >= moveInterval) {
+                moveTimer = 0;
+                
+                
+                if (inputQueue.length > 0) {
+                    const nextMove = inputQueue.shift();
+                    if (nextMove === 'ArrowUp' && snake.dir.y === 0) snake.dir = {x: 0, y: -1};
+                    if (nextMove === 'ArrowDown' && snake.dir.y === 0) snake.dir = {x: 0, y: 1};
+                    if (nextMove === 'ArrowLeft' && snake.dir.x === 0) snake.dir = {x: -1, y: 0};
+                    if (nextMove === 'ArrowRight' && snake.dir.x === 0) snake.dir = {x: 1, y: 0};
+                }
+                
+                let head = { x: snake.body[0].x + snake.dir.x, y: snake.body[0].y + snake.dir.y };
+
+                
+                const maxX = engine.width / GRID_SIZE;
+                const maxY = engine.height / GRID_SIZE;
+                if (head.x < 0) head.x = maxX - 1;
+                if (head.x >= maxX) head.x = 0;
+                if (head.y < 0) head.y = maxY - 1;
+                if (head.y >= maxY) head.y = 0;
+
+                
+                portals.forEach(p => {
+                    if (head.x === p.x && head.y === p.y) {
+                        head.x = p.outX;
+                        head.y = p.outY;
+                        engine.shake(10, 0.2);
+                        engine.spawnExplosion(p.x * GRID_SIZE + GRID_SIZE/2, p.y * GRID_SIZE + GRID_SIZE/2, p.color, 15);
+                    }
+                });
+
+                
+                if (!shieldActive && snake.body.some(b => b.x === head.x && b.y === head.y)) {
+                    triggerGameOver();
+                    return;
+                }
+
+                snake.body.unshift(head);
+
+                
+                if (head.x === food.x && head.y === food.y) {
+                    score += food.type === 'golden' ? 50 : 10;
+                    engine.spawnExplosion(head.x * GRID_SIZE + GRID_SIZE/2, head.y * GRID_SIZE + GRID_SIZE/2, '#fff', 10);
+                    spawnFood();
+                    moveInterval = Math.max(0.06, 0.15 - (score/2000));
+                    if (score % 100 === 0) {
+                        level++;
+                        spawnPowerup();
+                        spawnEnemy();
+                    }
+                    ui.updateHUD({ score, level });
+                } else {
+                    snake.body.pop();
+                }
+
+                
+                powerups = powerups.filter((p, i) => {
+                    if (head.x === p.x && head.y === p.y) {
+                        applyPowerup(p.type);
+                        engine.spawnExplosion(p.x * GRID_SIZE + GRID_SIZE/2, p.y * GRID_SIZE + GRID_SIZE/2, '#00ff00', 15);
+                        return false;
+                    }
+                    return p.life > 0;
+                });
+            }
+        };
+
+        function applyPowerup(type) {
+            if (type === 'shield') shieldActive = 5;
+            if (type === 'slow') moveInterval = 0.2;
+            if (type === 'speed') moveInterval = 0.05;
+        }
+
+        function triggerGameOver() {
+            gameOver = true;
+            engine.isRunning = false;
+            engine.shake(30, 0.5);
+            engine.spawnExplosion(snake.body[0].x * GRID_SIZE, snake.body[0].y * GRID_SIZE, '#ff0000', 40);
+            ui.showGameOver(score, level);
+        }
+
+        engine.onDraw = (ctx) => {
+            
+            ctx.fillStyle = '#000814';
+            ctx.fillRect(0,0,engine.width, engine.height);
+
+            
+            ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+            for(let i=0; i<engine.width; i+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, engine.height); ctx.stroke(); }
+            for(let i=0; i<engine.height; i+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(engine.width, i); ctx.stroke(); }
+
+            
+            portals.forEach(p => {
+                ctx.save();
+                ctx.shadowBlur = 15; ctx.shadowColor = p.color;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x * GRID_SIZE + GRID_SIZE/2, p.y * GRID_SIZE + GRID_SIZE/2, GRID_SIZE/1.5, 0, Math.PI*2);
+                ctx.fill();
+                ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
+                ctx.restore();
+            });
+
+            
+            snake.body.forEach((b, i) => {
+                ctx.fillStyle = i === 0 ? '#fff' : (shieldActive > 0 ? '#00f2ff' : snake.color);
+                if (i === 0) {
+                    ctx.shadowBlur = 20; ctx.shadowColor = ctx.fillStyle;
+                }
+                ctx.fillRect(b.x * GRID_SIZE + 1, b.y * GRID_SIZE + 1, GRID_SIZE - 2, GRID_SIZE - 2);
+                ctx.shadowBlur = 0;
+            });
+
+            
+            ctx.shadowBlur = 10; ctx.shadowColor = food.type === 'golden' ? '#ffd700' : '#ff3e3e';
+            ctx.fillStyle = food.type === 'golden' ? '#ffd700' : '#ff3e3e';
+            ctx.beginPath();
+            ctx.arc(food.x * GRID_SIZE + GRID_SIZE/2, food.y * GRID_SIZE + GRID_SIZE/2, GRID_SIZE/2.5, 0, Math.PI*2);
+            ctx.fill();
+
+            
+            powerups.forEach(p => {
+                ctx.fillStyle = '#00ff88';
+                ctx.font = '20px serif';
+                ctx.textAlign = 'center';
+                const emoji = p.type === 'shield' ? '🛡️' : (p.type === 'slow' ? '❄️' : '⚡');
+                ctx.fillText(emoji, p.x * GRID_SIZE + GRID_SIZE/2, p.y * GRID_SIZE + GRID_SIZE/1.5);
+            });
+
+            
+            enemies.forEach(e => {
+                ctx.fillStyle = '#ff4b2b';
+                ctx.shadowBlur = 15; ctx.shadowColor = '#ff4b2b';
+                ctx.fillRect(e.x * GRID_SIZE + 4, e.y * GRID_SIZE + 4, GRID_SIZE - 8, GRID_SIZE - 8);
+            });
+        };
+
+        
+        spawnFood();
+    </script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
+</body>
+
+</html>

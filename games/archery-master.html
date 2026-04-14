@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>سيد الرماية - Archery Master Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #0a2e0a; font-family: 'Cairo', sans-serif; touch-action: none; user-select: none; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        
+        .game-header {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .back-circle {
+            width: 48px; height: 48px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; text-decoration: none;
+            font-size: 20px; transition: 0.3s;
+            pointer-events: auto;
+        }
+        .back-circle:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.1); }
+
+        .score-box {
+            position: absolute;
+            left: 50%; top: 20px;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        .score-val {
+            font-size: 52px; font-weight: 900; color: #ffeb3b;
+            line-height: 1; text-shadow: 0 0 20px rgba(255, 235, 59, 0.6);
+        }
+        .score-lab { font-size: 14px; color: rgba(255,255,255,0.7); font-weight: 700; margin-top: -5px; }
+
+        #msg { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 60px; font-weight: 900; text-shadow: 0 0 30px rgba(255,235,59,0.8); pointer-events: none; opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #wind-box { position: absolute; top: 110px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.3); padding: 5px 20px; border-radius: 50px; color: #fff; display: flex; align-items: center; gap: 10px; font-size: 14px; border: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body>
+    <div class="game-header">
+        <div style="width:50px"></div>
+        <div class="score-box">
+            <div class="score-val" id="score">0</div>
+            <div class="score-lab">النقاط</div>
+        </div>
+        <a href="../index.html" class="back-circle">🏠</a>
+    </div>
+    <div id="wind-box">
+        الرياح: <span id="wind-arrow">⮕</span> <span id="wind-val">0.0</span>
+    </div>
+    <div id="msg">BULLSEYE!</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        let score = 0;
+        let wind = 0;
+        let arrows = [];
+        let bow = { x: 0, y: 0, angle: 0, pull: 0, ready: true, shake: 0 };
+        let target = { x: 0, y: 0, r: 90, speed: 2, dir: 1 };
+        let isDragging = false;
+        let startX, startY;
+
+        function reset() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            bow.x = 180;
+            bow.y = height * 0.7;
+            target.x = width - 250;
+            target.y = height * 0.4;
+            newWind();
+        }
+
+        function newWind() {
+            wind = (Math.random() - 0.5) * 1.8;
+            document.getElementById('wind-val').innerText = Math.abs(wind).toFixed(1);
+            document.getElementById('wind-arrow').innerText = wind > 0 ? "⮕" : "⬅";
+        }
+
+        window.addEventListener('resize', reset);
+        reset();
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSfx(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            if (type === 'hit') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            } else {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            }
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        }
+
+        canvas.addEventListener('pointerdown', e => {
+            if (!bow.ready) return;
+            isDragging = true;
+            startX = e.clientX; startY = e.clientY;
+        });
+
+        canvas.addEventListener('pointermove', e => {
+            if (isDragging) {
+                let dx = e.clientX - startX;
+                let dy = e.clientY - startY;
+                bow.pull = Math.min(Math.sqrt(dx*dx + dy*dy), 180);
+                bow.angle = Math.atan2(dy, dx);
+                bow.shake = bow.pull > 140 ? (Math.random()-0.5) * (bow.pull-140)*0.1 : 0;
+            }
+        });
+
+        canvas.addEventListener('pointerup', e => {
+            if (!isDragging) return;
+            isDragging = false;
+            if (bow.pull > 50) shoot();
+            bow.pull = 0; bow.shake = 0;
+        });
+
+        function shoot() {
+            bow.ready = false;
+            playSfx('release');
+            let force = (bow.pull + bow.shake*5) * 0.16;
+            arrows.push({
+                x: bow.x, y: bow.y,
+                vx: Math.cos(bow.angle + Math.PI) * force,
+                vy: Math.sin(bow.angle + Math.PI) * force,
+                active: true, angle: 0, stuckX: null, stuckY: null
+            });
+            if (arrows.length > 8) arrows.shift();
+            setTimeout(() => { bow.ready = true; newWind(); }, 1500);
+        }
+
+        function showMsg(t) {
+            const m = document.getElementById('msg');
+            m.innerText = t; m.style.opacity = 1; m.style.transform = "translate(-50%, -50%) scale(1.2)";
+            setTimeout(() => { m.style.opacity = 0; m.style.transform = "translate(-50%, -50%) scale(1)"; }, 1500);
+        }
+
+        function update() {
+            target.y += target.speed * target.dir;
+            if (target.y < 200 || target.y > height - 200) target.dir *= -1;
+
+            arrows.forEach(a => {
+                if (a.active) {
+                    a.vy += 0.22;
+                    a.vx += wind * 0.08;
+                    a.x += a.vx; a.y += a.vy;
+                    a.angle = Math.atan2(a.vy, a.vx);
+
+                    let dx = a.x - target.x;
+                    let dy = a.y - target.y;
+                    if (a.x >= target.x - 10 && a.vx > 0 && Math.abs(dy) < target.r) {
+                        a.active = false;
+                        a.stuckY = dy; a.stuckX = dx;
+                        playSfx('hit');
+                        let points = Math.max(1, 10 - Math.floor(Math.abs(dy) / (target.r/10)));
+                        score += points;
+                        document.getElementById('score').innerText = score;
+                        if (points >= 9) showMsg("BULLSEYE! 🎯");
+                        else if (points >= 7) showMsg("Nice!");
+                    }
+                    if (a.x > width + 100 || a.y > height + 100) a.active = false;
+                }
+            });
+        }
+
+        function drawTrajectory() {
+            if (!isDragging || bow.pull < 50) return;
+            let tx = bow.x, ty = bow.y;
+            let tvx = Math.cos(bow.angle + Math.PI) * (bow.pull * 0.16);
+            let tvy = Math.sin(bow.angle + Math.PI) * (bow.pull * 0.16);
+            ctx.beginPath(); ctx.setLineDash([4, 8]); ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.moveTo(tx, ty);
+            for(let i=0; i<40; i++) {
+                tvy += 0.22; tvx += wind * 0.08; tx += tvx; ty += tvy;
+                ctx.lineTo(tx, ty);
+                if (tx > width || ty > height) break;
+            }
+            ctx.stroke(); ctx.setLineDash([]);
+        }
+
+        function draw() {
+            ctx.fillStyle = '#0a2e0a'; ctx.fillRect(0,0,width,height);
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath(); ctx.moveTo(0, height); ctx.quadraticCurveTo(width/2, height*0.6, width, height); ctx.fill();
+
+            drawTrajectory();
+
+            ctx.save();
+            ctx.translate(target.x, target.y);
+            ctx.fillStyle = '#3e2723'; ctx.fillRect(-10, 0, 20, height);
+            const colors = ['#fff', '#212121', '#2196f3', '#f44336', '#ffeb3b'];
+            for(let i=0; i<5; i++) {
+                ctx.fillStyle = colors[i];
+                ctx.beginPath(); ctx.ellipse(0, 0, (target.r - i*18)*0.8, target.r - i*18, 0, 0, Math.PI*2); ctx.fill();
+            }
+            arrows.forEach(a => {
+                if(!a.active && a.stuckY !== null) {
+                    ctx.save(); ctx.translate(a.stuckX, a.stuckY); ctx.rotate(a.angle);
+                    ctx.strokeStyle='#eee'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(-50,0); ctx.lineTo(0,0); ctx.stroke();
+                    ctx.restore();
+                }
+            });
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(bow.x + bow.shake, bow.y + bow.shake); ctx.rotate(bow.angle + Math.PI);
+            ctx.strokeStyle = '#5d4037'; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(-40, 0, 120, -Math.PI/3, Math.PI/3); ctx.stroke();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath();
+            let s1x = -40+Math.cos(-Math.PI/3)*120, s1y = Math.sin(-Math.PI/3)*120;
+            let s2x = -40+Math.cos(Math.PI/3)*120, s2y = Math.sin(Math.PI/3)*120;
+            ctx.moveTo(s1x,s1y); ctx.lineTo(-bow.pull,0); ctx.lineTo(s2x,s2y); ctx.stroke();
+            if(bow.ready || isDragging) {
+                ctx.save(); ctx.translate(-bow.pull, 0); ctx.strokeStyle='#eee'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(-60,0); ctx.lineTo(0,0); ctx.stroke(); ctx.restore();
+            }
+            ctx.restore();
+
+            arrows.forEach(a => {
+                if(a.active) {
+                    ctx.save(); ctx.translate(a.x, a.y); ctx.rotate(a.angle);
+                    ctx.strokeStyle='#eee'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(-60,0); ctx.lineTo(0,0); ctx.stroke(); ctx.restore();
+                }
+            });
+
+            update();
+            requestAnimationFrame(draw);
+        }
+        draw();
+    </script>
+</body>
+</html>

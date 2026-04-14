@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+  <link rel="stylesheet" href="../assets/css/fonts-games.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🎈 Balloon Pop - عالم الألعاب</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -60,7 +60,7 @@
       box-shadow: 0 0 60px rgba(255,111,200,0.25);
     }
 
-    /* ── البالون ── */
+    
     .balloon {
       position: absolute;
       cursor: pointer;
@@ -84,7 +84,7 @@
       100% { transform: scale(0); opacity: 0; }
     }
 
-    /* ── بقايا انفجار ── */
+    
     .confetti {
       position: absolute; pointer-events: none;
       width: 10px; height: 10px; border-radius: 3px;
@@ -95,7 +95,7 @@
       100% { opacity: 0; transform: translate(var(--cx, 20px), var(--cy, -60px)) rotate(720deg) scale(0.2); }
     }
 
-    /* ── Overlay ── */
+    
     #overlay {
       position: fixed; inset: 0; background: rgba(20,5,50,0.93);
       display: flex; flex-direction: column; align-items: center;
@@ -111,7 +111,7 @@
     }
     #overlay button:hover { transform: scale(1.08); }
 
-    /* ── نقاط طائرة ── */
+    
     .float-pts {
       position: absolute; pointer-events: none;
       font-family: 'Fredoka One', cursive;
@@ -153,8 +153,8 @@
 <script>
 const field = document.getElementById('game-field');
 
-// ── أصوات ──
-function snd(f) { try { const a=new Audio('../sounds/'+f); a.preload='auto'; return a; } catch(e){ return {play:()=>{},currentTime:0}; } }
+
+function snd(f) { try { const a=new Audio('../assets/sounds/'+f); a.preload='auto'; return a; } catch(e){ return {play:()=>{},currentTime:0}; } }
 const SFX = {
   pop:   snd('mixkit-game-blood-pop-slide-2363.wav'),
   miss:  snd('mixkit-player-losing-or-failing-2042.wav'),
@@ -163,7 +163,7 @@ const SFX = {
 };
 function play(s){ try{ s.currentTime=0; s.play().catch(()=>{}); }catch(e){} }
 
-// ── ألوان البالونات ──
+
 const BALLOON_COLORS = [
   { fill: '#ff4757', dark: '#c0392b', name: 'red'    },
   { fill: '#ffd93d', dark: '#e6a817', name: 'yellow' },
@@ -184,13 +184,13 @@ let spawnAccel;
 function getFW() { return field.offsetWidth  || 600; }
 function getFH() { return field.offsetHeight || 460; }
 
-// ── SVG بالون ──
+
 function makeSVG(col, size) {
   const rx = size * 0.40;
   const ry = size * 0.48;
   const cx = size / 2;
   const cy = size * 0.48;
-  return `<svg width="${size}" height="${size*1.3}" viewBox="0 0 ${size} ${size*1.3}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg width="${size}" height="${size*1.3}" viewBox="0 0 ${size} ${size*1.3}" xmlns="http:
     <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${col.fill}"/>
     <ellipse cx="${cx-rx*0.35}" cy="${cy-ry*0.28}" rx="${rx*0.28}" ry="${ry*0.22}"
       fill="rgba(255,255,255,0.32)" transform="rotate(-22,${cx-rx*0.35},${cy-ry*0.28})"/>
@@ -199,12 +199,12 @@ function makeSVG(col, size) {
   </svg>`;
 }
 
-// ── توليد بالون ──
+
 function spawnBalloon() {
   if (!running) return;
   const col  = BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)];
   const size = 55 + Math.random() * 35;
-  const pts  = Math.round(80 - size * 0.5 + 25);   // بالونات أصغر = نقاط أكثر
+  const pts  = Math.round(80 - size * 0.5 + 25);   
   const FW   = getFW(), FH = getFH();
 
   const el = document.createElement('div');
@@ -245,7 +245,7 @@ function spawnBalloon() {
   balloonList.push({ el, iv });
 }
 
-// ── تفجير البالون ──
+
 function popIt(el, col, pts, iv) {
   if (!running || el.classList.contains('popping')) return;
   clearInterval(iv);
@@ -260,7 +260,7 @@ function popIt(el, col, pts, iv) {
   document.getElementById('popped').textContent = popped;
   document.getElementById('best').textContent   = best;
 
-  // نقاط طائرة
+  
   const r  = el.getBoundingClientRect();
   const fr = field.getBoundingClientRect();
   const pts_el = document.createElement('div');
@@ -271,13 +271,13 @@ function popIt(el, col, pts, iv) {
   field.appendChild(pts_el);
   setTimeout(() => pts_el.remove(), 800);
 
-  // كونفيتي
+  
   spawnConfetti(r.left - fr.left + r.width/2, r.top - fr.top + r.height/2, col.fill);
 
   setTimeout(() => el.remove(), 300);
 }
 
-// ── كونفيتي ──
+
 function spawnConfetti(cx, cy, color) {
   for (let i = 0; i < 10; i++) {
     const c = document.createElement('div');
@@ -293,7 +293,7 @@ function spawnConfetti(cx, cy, color) {
   }
 }
 
-// ── بدء اللعبة ──
+
 function startGame() {
   play(SFX.start);
   document.getElementById('overlay').style.display = 'none';
@@ -312,7 +312,7 @@ function startGame() {
 
   spawnInt = setInterval(spawnBalloon, spawnDelay);
 
-  // تزيد السرعة كل 10 ثواني
+  
   spawnAccel = setInterval(() => {
     if (!running) return;
     clearInterval(spawnInt);
@@ -328,7 +328,7 @@ function startGame() {
   }, 1000);
 }
 
-// ── نهاية اللعبة ──
+
 function endGame() {
   play(SFX.over);
   running = false;
@@ -355,5 +355,16 @@ function endGame() {
 
 document.getElementById('start-btn').addEventListener('click', startGame);
 </script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
 </body>
+
 </html>

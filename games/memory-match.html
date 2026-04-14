@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐾 ذاكرة الحيوانات - Memory Match</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Tajawal',sans-serif;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);min-height:100vh;color:#fff;user-select:none}
+#game{width:100%;max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+.top-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:rgba(0,0,0,.3);border-bottom:1px solid rgba(255,255,255,.1)}
+.back-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:20px;cursor:pointer;font-size:14px;font-family:'Tajawal',sans-serif;transition:.2s}
+.back-btn:hover{background:rgba(255,255,255,.3)}
+.stats-row{display:flex;gap:10px}
+.stat-pill{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:4px 12px;font-size:13px}
+.stat-pill b{color:#ffd700}
+
+
+.level-select{display:flex;justify-content:center;gap:8px;padding:10px 16px}
+.lvl-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 16px;border-radius:20px;cursor:pointer;font-family:'Tajawal',sans-serif;font-size:13px;transition:.2s}
+.lvl-btn.active{background:linear-gradient(135deg,#e94560,#c23152);border-color:#e94560}
+
+
+.grid-wrapper{flex:1;display:flex;align-items:center;justify-content:center;padding:16px}
+.cards-grid{display:grid;gap:10px}
+
+
+.card{perspective:600px;cursor:pointer}
+.card-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+.card.flipped .card-inner{transform:rotateY(180deg)}
+.card.matched .card-inner{transform:rotateY(180deg)}
+.card-front,.card-back{position:absolute;inset:0;border-radius:16px;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.card-front{background:linear-gradient(135deg,#1f4068,#1b262c);border:2px solid rgba(255,255,255,.15);font-size:28px;color:rgba(255,255,255,.5)}
+.card-back{background:linear-gradient(135deg,#e94560,#0f3460);border:2px solid rgba(233,69,96,.5);transform:rotateY(180deg);flex-direction:column;gap:4px}
+.card-back .animal-emoji{font-size:36px}
+.card-back .animal-name{font-size:12px;font-weight:700;color:rgba(255,255,255,.9)}
+.card.matched .card-back{background:linear-gradient(135deg,#00b894,#00cec9);border-color:#00b894;animation:match-pulse .5s ease}
+@keyframes match-pulse{0%,100%{transform:rotateY(180deg) scale(1)}50%{transform:rotateY(180deg) scale(1.08)}}
+.card.wrong-shake .card-inner{animation:wrong-card .4s ease}
+@keyframes wrong-card{0%,100%{transform:rotateY(180deg)}25%{transform:rotateY(180deg) translateX(-6px)}75%{transform:rotateY(180deg) translateX(6px)}}
+
+
+.bottom-bar{padding:14px 16px;text-align:center;font-size:14px;color:rgba(255,255,255,.6)}
+
+
+.win-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100}
+.win-emoji{font-size:80px;animation:win-bounce 1s cubic-bezier(.68,-0.55,.27,1.55)}
+@keyframes win-bounce{0%{transform:scale(0) rotate(-360deg)}100%{transform:scale(1) rotate(0)}}
+.win-title{font-size:32px;font-weight:900;color:#ffd700;text-shadow:0 0 20px #ffd700;margin:12px 0 8px}
+.win-stats{font-size:16px;color:#aaa;margin-bottom:6px}
+.win-stars{font-size:36px;margin:10px 0}
+.play-again{background:linear-gradient(135deg,#e94560,#c23152);border:none;color:#fff;padding:14px 32px;border-radius:24px;cursor:pointer;font-family:'Tajawal',sans-serif;font-size:17px;font-weight:900;margin-top:14px;transition:.2s;box-shadow:0 6px 20px rgba(233,69,96,.4)}
+.play-again:hover{transform:scale(1.05)}
+
+
+.sparkle{position:fixed;pointer-events:none;font-size:22px;animation:sparkle-up 1.2s ease-out forwards}
+@keyframes sparkle-up{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-100px) scale(.3) rotate(720deg)}}
+</style>
+</head>
+<body>
+<div id="game">
+  <div class="top-bar">
+    <button class="back-btn" onclick="window.location.href='../index.html'">← رجوع</button>
+    <div class="stats-row">
+      <div class="stat-pill">⏱️ <b id="timer">00:00</b></div>
+      <div class="stat-pill">🔄 <b id="moves">0</b></div>
+      <div class="stat-pill">✅ <b id="matched">0</b></div>
+    </div>
+  </div>
+  <div class="level-select">
+    <button class="lvl-btn active" onclick="startGame(4,4,'easy')" id="btn-easy">سهل</button>
+    <button class="lvl-btn" onclick="startGame(4,4,'medium')" id="btn-medium">متوسط</button>
+    <button class="lvl-btn" onclick="startGame(6,6,'hard')" id="btn-hard">صعب</button>
+  </div>
+  <div class="grid-wrapper">
+    <div class="cards-grid" id="cards-grid"></div>
+  </div>
+  <div class="bottom-bar" id="bottom-tip">اضغط على البطاقات لتكشف الحيوانات!</div>
+</div>
+<div class="win-modal" id="win-modal" style="display:none">
+  <div class="win-emoji">🏆</div>
+  <div class="win-title">رائع! فزت!</div>
+  <div class="win-stats">الوقت: <b id="w-time">-</b> | الحركات: <b id="w-moves">-</b></div>
+  <div class="win-stars" id="w-stars">⭐⭐⭐</div>
+  <button class="play-again" onclick="restartCurrent()">العب مجددًا 🔄</button>
+  <button class="back-btn" style="margin-top:10px" onclick="window.location.href='../index.html'">الرئيسية</button>
+</div>
+
+<script>
+const ANIMALS=[
+  {emoji:'🦁',name:'أسد'},{emoji:'🐘',name:'فيل'},{emoji:'🐧',name:'بطريق'},
+  {emoji:'🦊',name:'ثعلب'},{emoji:'🐯',name:'نمر'},{emoji:'🐸',name:'ضفدع'},
+  {emoji:'🦋',name:'فراشة'},{emoji:'🐬',name:'دولفين'},{emoji:'🦒',name:'زرافة'},
+  {emoji:'🐼',name:'باندا'},{emoji:'🦅',name:'نسر'},{emoji:'🐊',name:'تمساح'},
+  {emoji:'🦓',name:'حمار وحشي'},{emoji:'🐙',name:'أخطبوط'},{emoji:'🦁',name:'أسد'},
+  {emoji:'🦚',name:'طاووس'},{emoji:'🦉',name:'بومة'},{emoji:'🦈',name:'قرش'},
+];
+let cards=[],flipped=[],matchedCount=0,moves=0,timer_=null,seconds=0,currentLevel='easy';
+let cols=4,rows=4,totalPairs=8,gameActive=false;
+
+function startGame(c,r,level){
+  cols=c;rows=r;currentLevel=level;totalPairs=(c*r)/2;
+  document.querySelectorAll('.lvl-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn-'+level).classList.add('active');
+  document.getElementById('win-modal').style.display='none';
+  matchedCount=0;moves=0;flipped=[];gameActive=false;
+  clearInterval(timer_);seconds=0;
+  document.getElementById('moves').textContent='0';
+  document.getElementById('matched').textContent='0';
+  document.getElementById('timer').textContent='00:00';
+
+  const pool=ANIMALS.slice(0,totalPairs);
+  const deck=[...pool,...pool].sort(()=>Math.random()-.5);
+  cards=deck;
+  renderGrid();
+  setTimeout(()=>{gameActive=true;startTimer();},300);
+}
+function restartCurrent(){startGame(cols,rows,currentLevel);}
+function renderGrid(){
+  const g=document.getElementById('cards-grid');
+  g.style.gridTemplateColumns=`repeat(${cols},${cols===6?'68px':'80px'})`;
+  g.innerHTML='';
+  const sz=cols===6?68:80;const hz=cols===6?80:90;
+  cards.forEach((animal,idx)=>{
+    const card=document.createElement('div');
+    card.className='card';card.dataset.idx=idx;card.style.cssText=`width:${sz}px;height:${hz}px`;
+    card.innerHTML=`<div class="card-inner"><div class="card-front">❓</div><div class="card-back"><div class="animal-emoji">${animal.emoji}</div><div class="animal-name">${animal.name}</div></div></div>`;
+    card.addEventListener('click',()=>flipCard(idx,card));
+    g.appendChild(card);
+  });
+}
+function flipCard(idx,card){
+  if(!gameActive||flipped.length>=2)return;
+  if(flipped.find(f=>f.idx===idx))return;
+  if(card.classList.contains('matched'))return;
+  playFlipSound();
+  card.classList.add('flipped');
+  flipped.push({idx,card,animal:cards[idx]});
+  if(flipped.length===2){
+    moves++;document.getElementById('moves').textContent=moves;
+    if(flipped[0].animal.name===flipped[1].animal.name){
+      
+      setTimeout(()=>{
+        flipped.forEach(f=>{f.card.classList.add('matched');f.card.classList.remove('flipped');});
+        matchedCount++;document.getElementById('matched').textContent=matchedCount;
+        spawnSparkles(flipped[0].card);
+        playMatchSound();flipped=[];
+        if(matchedCount===totalPairs)setTimeout(showWin,500);
+      },400);
+    } else {
+      setTimeout(()=>{
+        flipped.forEach(f=>{f.card.classList.add('wrong-shake');});
+        setTimeout(()=>{flipped.forEach(f=>{f.card.classList.remove('flipped','wrong-shake');});flipped=[];},400);
+      },600);
+    }
+  }
+}
+function startTimer(){
+  timer_=setInterval(()=>{
+    seconds++;
+    const m=Math.floor(seconds/60).toString().padStart(2,'0');
+    const s=(seconds%60).toString().padStart(2,'0');
+    document.getElementById('timer').textContent=m+':'+s;
+  },1000);
+}
+function showWin(){
+  clearInterval(timer_);gameActive=false;
+  const m=Math.floor(seconds/60).toString().padStart(2,'0');
+  const s=(seconds%60).toString().padStart(2,'0');
+  document.getElementById('w-time').textContent=m+':'+s;
+  document.getElementById('w-moves').textContent=moves;
+  const stars=moves<=totalPairs+2?'⭐⭐⭐':moves<=totalPairs+5?'⭐⭐':'⭐';
+  document.getElementById('w-stars').textContent=stars;
+  for(let i=0;i<15;i++)setTimeout(()=>spawnRandomSparkle(),i*100);
+  document.getElementById('win-modal').style.display='flex';
+}
+function spawnSparkles(card){
+  const rect=card.getBoundingClientRect();
+  for(let i=0;i<5;i++){
+    const s=document.createElement('div');s.className='sparkle';
+    s.textContent=['✨','⭐','🌟','💫'][Math.floor(Math.random()*4)];
+    s.style.cssText=`left:${rect.left+Math.random()*rect.width}px;top:${rect.top}px;animation-delay:${Math.random()*.3}s`;
+    document.body.appendChild(s);setTimeout(()=>s.remove(),1500);
+  }
+}
+function spawnRandomSparkle(){
+  const s=document.createElement('div');s.className='sparkle';
+  s.textContent=['⭐','✨','🌟','💫','🎉'][Math.floor(Math.random()*5)];
+  s.style.cssText=`left:${10+Math.random()*80}%;top:${20+Math.random()*60}%;font-size:${20+Math.random()*20}px`;
+  document.body.appendChild(s);setTimeout(()=>s.remove(),1500);
+}
+
+const actx=new (window.AudioContext||window.webkitAudioContext)();
+function playFlipSound(){
+  const o=actx.createOscillator(),g=actx.createGain();
+  o.connect(g);g.connect(actx.destination);
+  o.type='sine';o.frequency.setValueAtTime(600,actx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(800,actx.currentTime+.1);
+  g.gain.setValueAtTime(.15,actx.currentTime);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.15);
+  o.start();o.stop(actx.currentTime+.15);
+}
+function playMatchSound(){
+  [523,659,784,1047].forEach((f,i)=>{
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.connect(g);g.connect(actx.destination);
+    o.frequency.value=f;o.type='sine';
+    const t=actx.currentTime+i*.1;
+    g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+.2);
+    o.start(t);o.stop(t+.2);
+  });
+}
+startGame(4,4,'easy');
+</script>
+
+
+<a href="../index.html" class="global-home-btn" style="position:fixed;top:15px;right:15px;background:rgba(0,0,0,0.5);color:#fff;text-decoration:none;font-family:sans-serif;font-weight:bold;padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);z-index:999999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:all 0.3s ease;">
+  <span>🏠</span> عودة للرئيسية
+</a>
+<script>
+  const btn = document.querySelector('.global-home-btn');
+  btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,0.1)'; btn.style.transform='translateY(-2px)'; });
+  btn.addEventListener('mouseout', () => { btn.style.background='rgba(0,0,0,0.5)'; btn.style.transform='none'; });
+</script>
+</body>
+
+</html>
